@@ -22,7 +22,7 @@ const InitialScreen: React.FC = () => {
         onPress={handleGetStarted}
         style={appStyles.pressContainer}
       >
-        <Text style={appStyles.pressText}>Get Started</Text>
+        <Text style={appStyles.pressText}>Get Started!</Text>
       </TouchableOpacity>
     </View>
   );
