@@ -24,6 +24,10 @@ const loginStyles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 5,
     },
+    buttonContainer: {
+        justifyContent: 'space-between',
+        height: 80
+    }
 })
 
 export default loginStyles;

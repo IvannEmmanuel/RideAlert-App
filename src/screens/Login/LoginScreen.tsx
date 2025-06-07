@@ -1,9 +1,9 @@
-import { View, Text, TextInput, Button } from 'react-native';
-import React, { useEffect } from 'react';
+import {View, Text, TextInput, Button, TouchableOpacity} from 'react-native';
+import React, {useEffect} from 'react';
 import loginStyles from '../../styles/loginStyles';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 
 const LoginScreen = () => {
   const [email, setEmail] = React.useState('');
@@ -27,7 +27,7 @@ const LoginScreen = () => {
 
       console.log('Login successful, token:', access_token);
 
-      navigation.navigate('Home');
+      navigation.navigate('Panel');
     } catch (error) {
       console.error('Login failed:', error);
     }
@@ -36,7 +36,7 @@ const LoginScreen = () => {
   return (
     <View style={loginStyles.container}>
       <Text style={loginStyles.text}>Login your credentials</Text>
-      
+
       <TextInput
         placeholder="Email"
         style={loginStyles.input}
@@ -45,7 +45,7 @@ const LoginScreen = () => {
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      
+
       <TextInput
         placeholder="Password"
         secureTextEntry
@@ -53,8 +53,16 @@ const LoginScreen = () => {
         value={password}
         onChangeText={setPassword}
       />
-      
-      <Button title="Login" onPress={handleLogin} color="#007AFF" />
+
+      <View style={loginStyles.buttonContainer}>
+        <Button title="Login" onPress={handleLogin} color="#007AFF" />
+
+        <Button
+          title="Register"
+          accessibilityLabel="Register"
+          onPress={() => navigation.navigate('Register')}
+        />
+      </View>
     </View>
   );
 };
