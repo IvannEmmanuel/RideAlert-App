@@ -1,4 +1,4 @@
-package com.ridealertapp
+package com.iemmanuel.ridelertapp
 
 import android.app.Application
 import com.facebook.react.PackageList

@@ -1,4 +1,4 @@
-package com.ridealertapp
+package com.iemmanuel.ridelertapp
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
