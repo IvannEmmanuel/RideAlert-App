@@ -7,11 +7,15 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import InitialScreen from '../screens/Initial/InitialScreen';
 import LoginScreen from '../screens/Login/LoginScreen';
 import Home from '../screens/Dashboard/Home';
+import Panel from '../screens/Dashboard/PanelScreen/Panel';
+import Register from '../screens/Register/RegisterScreen';
 
 export type RootStackParamList = {
   Initial: undefined;
   Login: undefined;
   Home: undefined;
+  Panel: undefined;
+  Register: undefined;
   // You can add other screens here later, e.g. Home: undefined
 };
 
@@ -28,6 +32,8 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="Initial" component={InitialScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Panel" component={Panel} />
+        <Stack.Screen name="Register" component={Register} />
       </Stack.Navigator>
     </NavigationContainer>
   );
