@@ -12,21 +12,6 @@ const LoginScreen = () => {
 
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const getToken = async () => {
-      try {
-        const token = await AsyncStorage.getItem('access_token');
-        if (token !== null) {
-          setSaveToken(token);
-          console.log('Stored token:', token);
-        }
-      } catch (e) {
-        console.log('Failed to fetch token from storage', e);
-      }
-    };
-    getToken();
-  }, []);
-
   const handleLogin = async () => {
     try {
       const response = await axios.post('http://192.168.1.3:8080/users/login', {
