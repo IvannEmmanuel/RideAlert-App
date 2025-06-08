@@ -2,8 +2,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Home from '../screens/Dashboard/Home/Home';
-import Profile from '../screens/Dashboard/Profile';
-import Notification from '../screens/Dashboard/Notification';
+import Profile from '../screens/Dashboard/Profile/Profile';
+import Notification from '../screens/Dashboard/Notification/Notification';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const Tab = createBottomTabNavigator();

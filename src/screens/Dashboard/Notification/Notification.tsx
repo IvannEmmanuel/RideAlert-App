@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
-import notificationStyles from '../../styles/notificationStyles'
+import notificationStyles from '../../../styles/notificationStyles'
 
 const Notification = () => {
   return (

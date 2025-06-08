@@ -1,6 +1,6 @@
 import {StyleSheet, View, Button} from 'react-native';
 import React from 'react';
-import {removeToken} from '../../utils/authStorage';
+import {removeToken} from '../../../utils/authStorage';
 import {useNavigation} from '@react-navigation/native';
 
 const Profile = () => {
