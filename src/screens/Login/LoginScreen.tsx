@@ -45,10 +45,12 @@ const LoginScreen = () => {
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
+        placeholderTextColor='black'
       />
 
       <TextInput
         placeholder="Password"
+        placeholderTextColor='black'
         secureTextEntry
         style={loginStyles.input}
         value={password}

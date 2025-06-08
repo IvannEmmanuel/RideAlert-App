@@ -65,6 +65,7 @@ const RegisterScreen = () => {
         autoCapitalize="words"
         value={firstName}
         onChangeText={setFirstName}
+        placeholderTextColor='black'
       />
       <Text style={registerStyles.text}>Last name</Text>
       <TextInput
@@ -73,6 +74,7 @@ const RegisterScreen = () => {
         autoCapitalize="words"
         value={lastName}
         onChangeText={setLastName}
+        placeholderTextColor='black'
       />
       <Text style={registerStyles.text}>Email</Text>
       <TextInput
@@ -82,6 +84,7 @@ const RegisterScreen = () => {
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
+        placeholderTextColor='black'
       />
       <Text style={registerStyles.text}>Password</Text>
       <TextInput
@@ -90,6 +93,7 @@ const RegisterScreen = () => {
         style={registerStyles.input}
         value={password}
         onChangeText={setPassword}
+        placeholderTextColor='black'
       />
       <Text style={registerStyles.text}>Confirm Password</Text>
       <TextInput
@@ -98,6 +102,7 @@ const RegisterScreen = () => {
         style={registerStyles.input}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
+        placeholderTextColor='black'
       />
       <Text style={registerStyles.text}>Address</Text>
       <TextInput
@@ -106,6 +111,7 @@ const RegisterScreen = () => {
         autoCapitalize="none"
         value={address}
         onChangeText={setAddress}
+        placeholderTextColor='black'
       />
       <Text style={registerStyles.text}>Gender</Text>
       <View style={registerStyles.gender}>
