@@ -6,13 +6,14 @@ import { getFCMToken } from '../../../utils/fcmStorage';
 import { requestLocationPermission, getCurrentLocation } from './useLocation';
 import { sendLocationToBackend } from './sendLocation';
 import HomeLoadingIndicator from '../../../components/LoadingIndicator';
-import homeStyles from '../../../styles/homeStyles';
+import Geolocation from '@react-native-community/geolocation';
 
 const HomeScreen = () => {
-  const [token, setToken] = useState(null);
-  const [location, setLocation] = useState(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Fetch token on mount
   useEffect(() => {
     (async () => {
       const t = await getToken();
@@ -20,6 +21,7 @@ const HomeScreen = () => {
     })();
   }, []);
 
+  // Request permission and get initial location
   useEffect(() => {
     (async () => {
       const hasPermission = await requestLocationPermission();
@@ -28,14 +30,42 @@ const HomeScreen = () => {
           loc => {
             setLocation(loc);
             setLoading(false);
-            if (token) sendLocationToBackend(loc.latitude, loc.longitude, token);
+            if (token) {
+              sendLocationToBackend(loc.latitude, loc.longitude, token);
+            }
           },
-          () => setLoading(false)
+          () => {
+            setLoading(false);
+          }
         );
       } else {
         setLoading(false);
       }
     })();
+  }, [token]);
+
+  // Watch for location changes with distanceFilter: 30
+  useEffect(() => {
+    if (!token) return;
+
+    const watchId = Geolocation.watchPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        setLocation({ latitude, longitude });
+        sendLocationToBackend(latitude, longitude, token);
+      },
+      error => {
+        console.error('Error watching position:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        distanceFilter: 30,
+        interval: 10000,
+      }
+    );
+
+    // Cleanup on unmount
+    return () => Geolocation.clearWatch(watchId);
   }, [token]);
 
   const FCMtoken = getFCMToken();
