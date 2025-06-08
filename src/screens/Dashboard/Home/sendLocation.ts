@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { BASE_URL } from '../../../config/apiConfig';
 
 export const sendLocationToBackend = async (latitude, longitude, token) => {
   try {
     await axios.post(
-      'http://192.168.1.3:8000/users/location',
+      `${BASE_URL}/users/location`,
       { latitude, longitude },
       {
         headers: {

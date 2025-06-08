@@ -4,6 +4,7 @@ import loginStyles from '../../styles/loginStyles';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
+import { BASE_URL } from '../../config/apiConfig';
 
 const LoginScreen = () => {
   const [email, setEmail] = React.useState('');
@@ -14,7 +15,7 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://192.168.1.3:8000/users/login', {
+      const response = await axios.post(`${BASE_URL}/users/login`, {
         email,
         password,
       });

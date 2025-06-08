@@ -4,6 +4,7 @@ import registerStyles from '../../styles/registerStyles';
 import {RadioButton} from 'react-native-paper';
 import axios from 'axios';
 import {useNavigation} from '@react-navigation/native';
+import { BASE_URL } from '../../config/apiConfig';
 
 //// dli ipasa sa backend password == confirm_password then only the password i pasa sa backend
 
@@ -35,7 +36,7 @@ const RegisterScreen = () => {
       }
 
       const response = await axios.post(
-        'http://192.168.1.3:8000/users/register',
+        `${BASE_URL}/users/register`,
         {
           first_name: firstName,
           last_name: lastName,
