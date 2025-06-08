@@ -6,7 +6,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 // Tanan screens
 import InitialScreen from '../screens/Initial/InitialScreen';
 import LoginScreen from '../screens/Login/LoginScreen';
-import Home from '../screens/Dashboard/Home';
+import Home from '../screens/Dashboard/Home/Home'
 import Panel from '../screens/Dashboard/PanelScreen/Panel';
 import Register from '../screens/Register/RegisterScreen';
 
