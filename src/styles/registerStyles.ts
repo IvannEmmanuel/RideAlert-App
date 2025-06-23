@@ -1,38 +1,123 @@
 import { StyleSheet, Dimensions } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 const registerStyles = StyleSheet.create({
     container: {
-        marginTop: height * 0.03,
-        padding: width * 0.05,
+        flex: 1,
+        backgroundColor: '#5AC2E6',
     },
-    input: {
-        height: height * 0.05,
-        borderColor: 'gray',
-        borderWidth: 1,
-        margin: height * 0.01,
-        paddingLeft: height * 0.01,
-        color: 'black',
-        borderRadius: 5,
-        fontFamily: 'Inter-Regular'
+
+    topBanner: {
+        height: height * 0.25,
+        backgroundColor: '#5AC2E6',
     },
+
+    card: {
+        flex: 1,
+        backgroundColor: '#e0e0e0',
+        marginHorizontal: 0,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 30,
+        marginTop: -80,
+        zIndex: 1,
+    },
+
     title: {
-        fontSize: height * 0.03,
-        color: 'black',
+        fontSize: 24,
         fontFamily: 'Inter-Bold',
-        alignSelf: 'center',
-        marginBottom: height * 0.02
+        marginBottom: 20,
+        color: '#000',
     },
-    text:{
-        marginLeft: 10,
-        fontFamily: 'Inter-Medium',
-    },
-    gender: {
+
+    row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignSelf: 'center'
-    }
-})
+        gap: 10,
+    },
+
+    label: {
+        fontSize: 13,
+        fontFamily: 'Inter-Regular',
+        color: '#8d99ae',
+        fontWeight: '500',
+        marginBottom: 4,
+        marginTop: 10,
+    },
+
+    halfInput: {
+        flex: 1,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        fontSize: 15,
+        color: 'black',
+        marginVertical: 6,
+    },
+
+    input: {
+        backgroundColor: 'white',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        fontFamily: 'Inter-Regular',
+        fontSize: 15,
+        color: 'black',
+        marginVertical: 6,
+        width: '100%',
+    },
+
+    gender: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        marginVertical: 6,
+    },
+
+    genderIcon: {
+        marginRight: 8,
+    },
+
+    registerButton: {
+        backgroundColor: '#00BFFF',
+        paddingVertical: 14,
+        borderRadius: 10,
+        marginTop: 10,
+    },
+
+    registerButtonText: {
+        color: '#fff',
+        fontFamily: 'Inter-Bold',
+        textAlign: 'center',
+        fontSize: 15,
+    },
+
+    orText: {
+        color: '#555',
+        marginVertical: 10,
+        fontSize: 15,
+        textAlign: 'center',
+    },
+
+    backButton: {
+        backgroundColor: '#fff',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#ccc',
+    },
+
+    backButtonText: {
+        color: '#333',
+        fontFamily: 'Inter-Bold',
+        textAlign: 'center',
+        fontSize: 15,
+    },
+});
 
 export default registerStyles;
