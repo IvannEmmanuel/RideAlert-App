@@ -33,10 +33,6 @@ const Profile = () => {
     navigation.navigate('Login');
   };
 
-  const handleInputChange = (key: string, value: string) => {
-    setProfileData({...profileData, [key]: value});
-  };
-
   return (
     <ScrollView style={profileStyles.container}>
       <Image
@@ -51,7 +47,7 @@ const Profile = () => {
 
         <View>
           <Text style={profileStyles.label}>{fullName}</Text>
-          <Text style={profileStyles.label}>{user.gender}</Text>
+          <Text style={profileStyles.label}>{user ? user.gender : ''}</Text>
         </View>
       </View>
 
@@ -59,8 +55,8 @@ const Profile = () => {
         <View style={profileStyles.sectionHeader}>
           <Text style={profileStyles.sectionTitle}>Contact Information</Text>
         </View>
-        <Text style={profileStyles.label}>{user.email}</Text>
-        <Text style={profileStyles.label}>{user.address || 'N/A'}</Text>
+        <Text style={profileStyles.label}>{user ? user.email : ''}</Text>
+        <Text style={profileStyles.label}>{user ? user.address || 'N/A' : ''}</Text>
       </View>
 
       <View style={profileStyles.accountSettingsContainer}>
