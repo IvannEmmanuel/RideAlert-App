@@ -27,8 +27,14 @@ const LoginScreen = () => {
       });
 
         const access_token = response.data.access_token;
+        const user = response.data.user;
+
+        // Store the token in AsyncStorage
         await AsyncStorage.setItem('access_token', access_token);
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+
         console.log('Login successful, token:', access_token);
+        console.log('User data:', user);
 
       navigation.navigate('Panel');
     } catch (error) {
