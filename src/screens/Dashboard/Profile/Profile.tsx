@@ -47,13 +47,6 @@ const Profile = () => {
       <View style={profileStyles.section}>
         <View style={profileStyles.sectionHeader}>
           <Text style={profileStyles.sectionTitle}>Personal Information</Text>
-          <TouchableOpacity onPress={() => setEditMode(!editMode)}>
-            <Icon
-              name={editMode ? 'content-save' : 'pencil'}
-              size={18}
-              color="#007bff"
-            />
-          </TouchableOpacity>
         </View>
 
         <View>
