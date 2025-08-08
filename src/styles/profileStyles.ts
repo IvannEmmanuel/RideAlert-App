@@ -1,27 +1,18 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 const profileStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f5f9',
+    paddingTop: height * 0.05,
   },
-
-  // Header
-  header: {
-    backgroundColor: '#4cc9f0',
-    height: 130,
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    //borderBottomLeftRadius: 24,
-    //borderBottomRightRadius: 24,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 6,
-    zIndex: 1,
+  image:{
+    width: width * 0.8,
+    height: width * 0.4,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   headerTitle: {
     fontSize: 12,
@@ -83,10 +74,10 @@ const profileStyles = StyleSheet.create({
     marginBottom: 14,
   },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#8d99ae',
     marginBottom: 2,
-    fontWeight: '500',
+    fontWeight: '500'
   },
   value: {
     fontSize: 15,
