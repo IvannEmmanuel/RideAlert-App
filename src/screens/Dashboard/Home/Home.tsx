@@ -1,16 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import { getToken } from '../../../utils/authStorage';
-import { getFCMToken } from '../../../utils/fcmStorage';
-import { requestLocationPermission, getCurrentLocation } from './useLocation';
-import { sendLocationToBackend } from './sendLocation';
+import React, {useEffect, useState} from 'react';
+import {View, Text, Dimensions, TouchableOpacity} from 'react-native';
+import MapView, {Marker} from 'react-native-maps';
+import {getToken} from '../../../utils/authStorage';
+import {getFCMToken} from '../../../utils/fcmStorage';
+import {requestLocationPermission, getCurrentLocation} from './useLocation';
+import {sendLocationToBackend} from './sendLocation';
 import HomeLoadingIndicator from '../../../components/LoadingIndicator';
 import Geolocation from '@react-native-community/geolocation';
+import homeStyles from '../../../styles/homeStyles';
+import {TextInput} from 'react-native-paper';
 
 const HomeScreen = () => {
   const [token, setToken] = useState<string | null>(null);
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const {width, height} = Dimensions.get('window');
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch token on mount
@@ -36,7 +42,7 @@ const HomeScreen = () => {
           },
           () => {
             setLoading(false);
-          }
+          },
         );
       } else {
         setLoading(false);
@@ -50,8 +56,8 @@ const HomeScreen = () => {
 
     const watchId = Geolocation.watchPosition(
       position => {
-        const { latitude, longitude } = position.coords;
-        setLocation({ latitude, longitude });
+        const {latitude, longitude} = position.coords;
+        setLocation({latitude, longitude});
         sendLocationToBackend(latitude, longitude, token);
       },
       error => {
@@ -61,7 +67,7 @@ const HomeScreen = () => {
         enableHighAccuracy: true,
         distanceFilter: 30,
         interval: 10000,
-      }
+      },
     );
 
     // Cleanup on unmount
@@ -74,26 +80,48 @@ const HomeScreen = () => {
   if (loading) return <HomeLoadingIndicator />;
 
   return (
-    <View style={{ flex: 1 }}>
-      {location ? (
-        <MapView
-          style={{ flex: 1 }}
-          initialRegion={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-          showsUserLocation={true}
-        >
-          <Marker coordinate={location} title="You are here" />
-        </MapView>
-      ) : (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text>Location not available</Text>
+    <>
+      <View style={{flex: 1}}>
+        {location ? (
+          <MapView
+            style={{flex: 0.5, width: '100%'}}
+            initialRegion={{
+              latitude: location.latitude,
+              longitude: location.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+            showsUserLocation={true}>
+            <Marker coordinate={location} title="You are here" />
+          </MapView>
+        ) : (
+          <View
+            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <Text>Location not available</Text>
+          </View>
+        )}
+        <View style={homeStyles.inputContainer}>
+          <TextInput
+          style={homeStyles.input}
+          placeholder="Search for a location"
+          placeholderTextColor="#777"
+          mode="outlined"
+          />
+          <TextInput
+          style={homeStyles.input}
+          placeholder="Search for a destination"
+          placeholderTextColor="#777"
+          mode="outlined"
+          />
         </View>
-      )}
-    </View>
+        <View>
+          <TouchableOpacity
+            style={homeStyles.button}>
+            <Text style={{color: '#fff'}}>Find Nearby Bus</Text>
+            </TouchableOpacity>
+        </View>
+      </View>
+    </>
   );
 };
 
