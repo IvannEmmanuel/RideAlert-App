@@ -31,7 +31,7 @@ const AppNavigator: React.FC = () => {
         screenOptions={{headerShown: false}}>
         <Stack.Screen name="Initial" component={InitialScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Home" component={Home}/>
         <Stack.Screen name="Panel" component={Panel} />
         <Stack.Screen name="Register" component={Register} />
       </Stack.Navigator>
