@@ -1,18 +1,18 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, Dimensions, TouchableOpacity} from 'react-native';
-import MapView, {Marker} from 'react-native-maps';
-import {getToken} from '../../../utils/authStorage';
-import {getFCMToken} from '../../../utils/fcmStorage';
-import {requestLocationPermission, getCurrentLocation} from './useLocation';
-import {sendLocationToBackend} from './sendLocation';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import { getToken } from '../../../utils/authStorage';
+import { getFCMToken } from '../../../utils/fcmStorage';
+import { requestLocationPermission, getCurrentLocation } from './useLocation';
+import { sendLocationToBackend } from './sendLocation';
 import HomeLoadingIndicator from '../../../components/LoadingIndicator';
 import Geolocation from '@react-native-community/geolocation';
 import homeStyles from '../../../styles/homeStyles';
-import {TextInput} from 'react-native-paper';
+import { TextInput } from 'react-native-paper';
 
 const HomeScreen = () => {
   const [token, setToken] = useState<string | null>(null);
-  const {width, height} = Dimensions.get('window');
+  const { width, height } = Dimensions.get('window');
   const [location, setLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -56,8 +56,8 @@ const HomeScreen = () => {
 
     const watchId = Geolocation.watchPosition(
       position => {
-        const {latitude, longitude} = position.coords;
-        setLocation({latitude, longitude});
+        const { latitude, longitude } = position.coords;
+        setLocation({ latitude, longitude });
         sendLocationToBackend(latitude, longitude, token);
       },
       error => {
@@ -81,10 +81,10 @@ const HomeScreen = () => {
 
   return (
     <>
-      <View style={{flex: 1}}>
+      <View style={{ flex: 1 }}>
         {location ? (
           <MapView
-            style={{flex: 0.5, width: '100%'}}
+            style={{ flex: 1, width: '100%' }}
             initialRegion={{
               latitude: location.latitude,
               longitude: location.longitude,
@@ -96,29 +96,35 @@ const HomeScreen = () => {
           </MapView>
         ) : (
           <View
-            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Text>Location not available</Text>
           </View>
         )}
-        <View style={homeStyles.inputContainer}>
-          <TextInput
-          style={homeStyles.input}
-          placeholder="Search for a location"
-          placeholderTextColor="#777"
-          mode="outlined"
-          />
-          <TextInput
-          style={homeStyles.input}
-          placeholder="Search for a destination"
-          placeholderTextColor="#777"
-          mode="outlined"
-          />
-        </View>
-        <View>
-          <TouchableOpacity
-            style={homeStyles.button}>
-            <Text style={{color: '#fff'}}>Find Nearby Bus</Text>
+        <View style={homeStyles.searchContainer}>
+          <View style={homeStyles.outerContainer}>
+            <View style={homeStyles.strokeMainContainer}>
+              <View style={homeStyles.strokeContainer} />
+            </View>
+            <View style={homeStyles.innerContainer}>
+              <TextInput
+                style={homeStyles.input}
+                placeholder="Search location"
+                placeholderTextColor={'#888'}
+                mode='outlined'
+                theme={{ roundness: 5 }}
+              />
+              <TextInput
+                style={homeStyles.input}
+                placeholder="Search for destination"
+                placeholderTextColor={'#888'}
+                mode='outlined'
+                theme={{ roundness: 5 }}
+              />
+            </View>
+            <TouchableOpacity style={homeStyles.button}>
+              <Text style={{ color: '#fff', fontSize: 16 }}>Find Nearby bus</Text>
             </TouchableOpacity>
+          </View>
         </View>
       </View>
     </>
