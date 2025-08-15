@@ -1,7 +1,7 @@
-import {StyleSheet} from 'react-native';
-import {Dimensions} from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Dimensions } from 'react-native';
 
-const {height, width} = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 
 const homeStyles = StyleSheet.create({
   container: {
@@ -17,7 +17,10 @@ const homeStyles = StyleSheet.create({
   input: {
     backgroundColor: '#fff',
     height: height * 0.05,
-    marginBottom: 10,
+    fontSize: 13,
+    width: '80%',
+    alignSelf: 'center',
+    margin: 10,
   },
   button: {
     alignSelf: 'center',
@@ -28,6 +31,45 @@ const homeStyles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
+  searchContainer: {
+    position: 'absolute', 
+    bottom: 20,
+    left: 10, 
+    right: 10,
+    alignItems: 'center',
+  },
+  outerContainer: {
+    backgroundColor: '#E6F3F4',
+    borderRadius: 14,
+    width: '95%',
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    boxShadow: '0 6px 10px rgba(0, 0, 0, 0.1)',
+  },
+  innerContainer: {
+    backgroundColor: '#fdfdfdff',
+    width: '85%',
+    height: '60%',
+    shadowColor: '#000',
+    boxShadow: '0 6px 10px rgba(0, 0, 0, 0.1)',
+    borderRadius: 14,
+    justifyContent: 'center',
+  },
+  strokeMainContainer:{
+    width: '100%',
+    height: 20,
+    alignSelf: 'center',
+    backgroundColor: '#E6F3F4',
+  },
+  strokeContainer: {
+    width: '55%',
+    height: 5,
+    backgroundColor: '#D9D9D9',
+    borderRadius: 5,
+    alignSelf: 'center',
+  }
 });
 
 export default homeStyles;
