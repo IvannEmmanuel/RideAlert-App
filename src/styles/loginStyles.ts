@@ -13,7 +13,7 @@ export default StyleSheet.create({
     },
     card: {
         flex: 1,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#f7f7f7ff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         paddingHorizontal: 30,  // internal spacing inside the card
