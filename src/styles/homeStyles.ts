@@ -31,12 +31,17 @@ const homeStyles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
+  buttonText: { 
+    color: '#fff', 
+    fontSize: 15, 
+    fontFamily: 'Inter-Bold' 
+  },
   searchContainer: {
-    position: 'absolute', 
+    position: 'absolute',
     bottom: 20,
-    left: 10, 
+    left: 10,
     right: 10,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   outerContainer: {
     backgroundColor: '#E6F3F4',
@@ -45,19 +50,17 @@ const homeStyles = StyleSheet.create({
     height: 300,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    boxShadow: '0 6px 10px rgba(0, 0, 0, 0.1)',
+    elevation: 10,
   },
   innerContainer: {
     backgroundColor: '#fdfdfdff',
     width: '85%',
     height: '60%',
-    shadowColor: '#000',
-    boxShadow: '0 6px 10px rgba(0, 0, 0, 0.1)',
+    elevation: 10,
     borderRadius: 14,
     justifyContent: 'center',
   },
-  strokeMainContainer:{
+  strokeMainContainer: {
     width: '100%',
     height: 20,
     alignSelf: 'center',
