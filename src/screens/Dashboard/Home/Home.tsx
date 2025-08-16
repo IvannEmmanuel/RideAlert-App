@@ -81,7 +81,7 @@ const HomeScreen = () => {
 
   return (
     <>
-      <View style={{ flex: 1 }}>
+      <View style={homeStyles.container}>
         {location ? (
           <MapView
             style={{ flex: 1, width: '100%' }}
@@ -122,7 +122,7 @@ const HomeScreen = () => {
               />
             </View>
             <TouchableOpacity style={homeStyles.button}>
-              <Text style={{ color: '#fff', fontSize: 16 }}>Find Nearby bus</Text>
+              <Text style={homeStyles.buttonText}>Find Nearby bus</Text>
             </TouchableOpacity>
           </View>
         </View>
