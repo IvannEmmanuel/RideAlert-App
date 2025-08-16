@@ -3,139 +3,70 @@ import { StyleSheet, Dimensions } from 'react-native';
 const { width, height } = Dimensions.get('window');
 
 const profileStyles = StyleSheet.create({
+  header: {
+    backgroundColor: '#FFF',
+    flex: 1
+  },
   container: {
-    flex: 1,
-    backgroundColor: '#f2f5f9',
-    paddingTop: height * 0.05,
+    backgroundColor: '#5AC2E6',
+    flex: 0.5,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30
   },
-  image:{
-    width: width * 0.8,
-    height: width * 0.4,
+  profileContainer: {
     alignSelf: 'center',
+    top: -60,
+    height: '15%',
+    width: '30%',
+    borderRadius: 100,
+    backgroundColor: '#5e5e5eff'
+  },
+  informationContainer: {
+    top: -20,
+    flexDirection: 'column',
+    alignSelf: 'center',
+  },
+  mainInformationText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 16,
+    bottom: 10,
+  },
+  stroke: {
+    alignSelf: 'center',
+    width: 370,
+    backgroundColor: '#D9D9D9',
+    height: 3,
+  },
+  subInformationContainer: {
     marginBottom: 20,
   },
-  headerTitle: {
-    fontSize: 12,
-    fontFamily: 'Inter-Bold',
-    //fontWeight: '700',
-    color: '#1d3557',
-    marginTop: -36,
-    marginBottom: 16,
-    letterSpacing: 0.5,
-  },
-
-  // Avatar
-  avatarWrapper: {
-    alignItems: 'center',
-    marginTop: -36,
-    marginBottom: 16,
-    zIndex: 2,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-  },
-  changePhotoText: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#4895ef',
-    opacity: 0.85,
-  },
-
-  // Section Block
-  section: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginBottom: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
-    fontWeight: '600',
-    color: '#1d3557',
-  },
-
-  // Field Group
-  infoGroup: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 12,
-    color: '#8d99ae',
-    marginBottom: 2,
-    fontWeight: '500'
-  },
-  value: {
-    fontSize: 15,
+  valueInformationText: {
     fontFamily: 'Inter-Medium',
-    color: '#2b2d42',
-    paddingVertical: 2,
+    fontSize: 15
   },
-  input: {
-    fontSize: 15,
-    color: '#1e1e1e',
-    backgroundColor: '#f6f7f8',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#dce0e4',
-  },
-
-  // Account Settings
-  accountSettingsContainer: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginBottom: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  accountSettings: {
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
-    fontWeight: '600',
-    color: '#1d3557',
-    textAlign: 'left',
-    marginBottom: 20, // Adds clean space before buttons
-    },
-  accountAction: {
-    fontSize: 16,
+  subInformationText: {
     fontFamily: 'Inter-Medium',
-    fontWeight: '600',
+    fontSize: 15,
+    color: '#757575',
+    marginTop: 10,
+  },
+  logoutButton: {
+    paddingHorizontal: 20
+  },
+  logoutText: {
+    color: '#0065F8',
+    fontFamily: 'Inter-Medium',
+    fontSize: 15
+  },
+  profileText: {
+    color: '#fff',
+    fontSize: 48,
+    fontFamily: 'Inter-Bold',
     textAlign: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  delete: {
-    color: '#e63946',
-    backgroundColor: '#ffe5e9',
-  },
-  logout: {
-    color: '#1d3557',
-    backgroundColor: '#eaf1f8',
-  },
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    flex: 1
+  }
 });
 
 export default profileStyles;

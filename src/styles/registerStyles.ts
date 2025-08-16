@@ -15,7 +15,7 @@ const registerStyles = StyleSheet.create({
 
     card: {
         flex: 1,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#f7f7f7ff',
         marginHorizontal: 0,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
@@ -55,6 +55,8 @@ const registerStyles = StyleSheet.create({
         fontSize: 15,
         color: 'black',
         marginVertical: 6,
+        borderWidth: 1,
+        borderColor: '#ccc',
     },
 
     input: {
@@ -67,6 +69,8 @@ const registerStyles = StyleSheet.create({
         color: 'black',
         marginVertical: 6,
         width: '100%',
+        borderWidth: 1,
+        borderColor: '#ccc',
     },
 
     gender: {

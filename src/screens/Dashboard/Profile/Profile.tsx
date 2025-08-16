@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,11 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {removeToken} from '../../../utils/authStorage';
-import {useNavigation} from '@react-navigation/native';
+import { removeToken } from '../../../utils/authStorage';
+import { useNavigation } from '@react-navigation/native';
 import profileStyles from '../../../styles/profileStyles';
-import {Image} from 'react-native';
-import {getUser} from '../../../utils/authStorage';
+import { Image } from 'react-native';
+import { getUser } from '../../../utils/authStorage';
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -23,7 +22,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await getUser();
-      setUser (userData);
+      setUser(userData);
     };
     fetchUser();
   }, []);
@@ -34,44 +33,37 @@ const Profile = () => {
   };
 
   return (
-    <ScrollView style={profileStyles.container}>
-      <Image
-        source={require('../../../../src/images/bus_image.png')}
-        style={profileStyles.image}
-        resizeMode="contain"
-      />
-      <View style={profileStyles.section}>
-        <View style={profileStyles.sectionHeader}>
-          <Text style={profileStyles.sectionTitle}>Personal Information</Text>
+    <View style={profileStyles.header}>
+      <View style={profileStyles.container} />
+      <View style={profileStyles.profileContainer}>
+        <Text style={profileStyles.profileText}>
+          {user?.first_name?.charAt(0)?.toUpperCase() || ''}
+        </Text>
+      </View>
+      <View style={profileStyles.informationContainer}>
+        <Text style={profileStyles.mainInformationText}>Personal Information</Text>
+        <View style={profileStyles.stroke} />
+        <View style={profileStyles.subInformationContainer}>
+          <Text style={profileStyles.subInformationText}>Name</Text>
+          <Text style={profileStyles.valueInformationText}>{user ? fullName || 'N/A' : ''}</Text>
+          <Text style={profileStyles.subInformationText}>Gender</Text>
+          <Text style={profileStyles.valueInformationText}>{user ? user.gender || 'N/A' : ''}</Text>
+          <Text style={profileStyles.subInformationText}>Address</Text>
+          <Text style={profileStyles.valueInformationText}>{user ? user.address || 'N/A' : ''}</Text>
         </View>
-
-        <View>
-          <Text style={profileStyles.label}>{fullName}</Text>
-          <Text style={profileStyles.label}>{user ? user.gender : ''}</Text>
+        <Text style={profileStyles.mainInformationText}>Contact Information</Text>
+        <View style={profileStyles.stroke} />
+        <View style={profileStyles.subInformationContainer}>
+          <Text style={profileStyles.subInformationText}>Email</Text>
+          <Text style={profileStyles.valueInformationText}>{user ? user.email || 'N/A' : ''}</Text>
         </View>
+        <Text style={profileStyles.mainInformationText}>Account Settings</Text>
+        <View style={profileStyles.stroke} />
       </View>
-
-      <View style={profileStyles.section}>
-        <View style={profileStyles.sectionHeader}>
-          <Text style={profileStyles.sectionTitle}>Contact Information</Text>
-        </View>
-        <Text style={profileStyles.label}>{user ? user.email : ''}</Text>
-        <Text style={profileStyles.label}>{user ? user.address || 'N/A' : ''}</Text>
-      </View>
-
-      <View style={profileStyles.accountSettingsContainer}>
-        <Text style={profileStyles.accountSettings}>Account Settings</Text>
-
-        <TouchableOpacity onPress={handleLogout}>
-          <Text style={[profileStyles.accountAction, profileStyles.logout]}>
-            Log Out
-          </Text>
-        </TouchableOpacity>
-      </View>
-      <View>
-        <Text style={profileStyles.accountSettings}/>
-      </View>
-    </ScrollView>
+      <TouchableOpacity style={profileStyles.logoutButton} onPress={handleLogout}>
+        <Text style={profileStyles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+    </View >
   );
 };
 
