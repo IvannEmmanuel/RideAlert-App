@@ -49,8 +49,9 @@ export default StyleSheet.create({
         color: '#000',
     },
     forgot: {
-        alignItems: 'flex-end',
+        alignSelf: 'flex-end',
         marginBottom: 20,
+        width: '30%',
     },
     forgotText: {
         fontFamily: 'Inter-Regular',
