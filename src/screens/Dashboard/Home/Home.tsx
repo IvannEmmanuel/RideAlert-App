@@ -91,7 +91,7 @@ const HomeScreen = () => {
     return () => Geolocation.clearWatch(watchId);
   }, [token]);
 
-  // Animate map to user location when it changes
+  // Animate map to user when location changes
   useEffect(() => {
     if (location && mapRef.current) {
       mapRef.current.animateToRegion(
