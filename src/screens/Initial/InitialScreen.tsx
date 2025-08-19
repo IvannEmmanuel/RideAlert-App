@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
 import { useNavigation } from '@react-navigation/native';
 import { ImageBackground } from 'react-native';
@@ -22,7 +22,7 @@ const InitialScreen = () => {
         </View>
         <TouchableOpacity style={styles.buttonContainer} onPress={getStartedPress}>
           <Text style={styles.textButton}>Get Started</Text>
-          <Text style={styles.subTextButton}>></Text>
+          <Image source={require('../../images/arrow-icon.png')} style={styles.arrowIcon}/>
         </TouchableOpacity>
       </ImageBackground>
   )
@@ -61,12 +61,16 @@ const styles = StyleSheet.create({
   },
   textButton: {
     fontSize: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Montserrat-Regular',
     color: '#FFFFFF',
   },
   subTextButton: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
+  },
+  arrowIcon: {
+    height: 15,
+    width: 10
   }
 })

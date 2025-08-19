@@ -5,10 +5,10 @@ import { getToken, getUser } from '../../../utils/authStorage';
 import { getFCMToken } from '../../../utils/fcmStorage';
 import { requestLocationPermission, getCurrentLocation } from './useLocation';
 import { sendLocationToBackend } from './sendLocation';
-import HomeLoadingIndicator from '../../../components/LoadingIndicator';
 import Geolocation from '@react-native-community/geolocation';
 import homeStyles from '../../../styles/homeStyles';
-import { TextInput } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+
 
 const HomeScreen = () => {
   const [token, setToken] = useState<string | null>(null);
@@ -21,6 +21,7 @@ const HomeScreen = () => {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const mapRef = useRef<MapView>(null);
   const animation = useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation();
 
   const DEFAULT_LATITUDE = 8.485255;
   const DEFAULT_LONGITUDE = 124.653642;
@@ -37,6 +38,10 @@ const HomeScreen = () => {
     if (hour < 18) return 'Good Afternoon,';
     return 'Good Evening,';
   };
+
+  const handleSearchBus = () => {
+    navigation.navigate('AvailableBus');
+  }
 
   const handleSearchPress = () => {
     if (!isSearchExpanded) {
@@ -241,7 +246,7 @@ const HomeScreen = () => {
                 <Text style={homeStyles.rideText}>Looking for a ride?</Text>
               </View>
 
-              <TouchableOpacity style={homeStyles.subMainSearchContainer}>
+              <TouchableOpacity style={homeStyles.subMainSearchContainer} onPress={handleSearchBus}>
                 <View style={homeStyles.subOfMainSearchContainer}>
                   <Image source={require('../../../images/search.png')} />
                   <Text style={homeStyles.searchText}>Search Buses</Text>
