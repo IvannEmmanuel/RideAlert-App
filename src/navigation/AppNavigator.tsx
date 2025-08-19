@@ -9,6 +9,7 @@ import LoginScreen from '../screens/Login/LoginScreen';
 import Home from '../screens/Dashboard/Home/Home'
 import Panel from '../screens/Dashboard/PanelScreen/Panel';
 import Register from '../screens/Register/RegisterScreen';
+import InitialSecondPhase from '../screens/Initial/InitialSecondPhase/InitialSecondPhase';
 
 export type RootStackParamList = {
   Initial: undefined;
@@ -16,6 +17,7 @@ export type RootStackParamList = {
   Home: undefined;
   Panel: undefined;
   Register: undefined;
+  InitialSecondPhase: undefined;
   // You can add other screens here later, e.g. Home: undefined
 };
 
@@ -34,6 +36,7 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="Home" component={Home}/>
         <Stack.Screen name="Panel" component={Panel} />
         <Stack.Screen name="Register" component={Register} />
+        <Stack.Screen name="InitialSecondPhase" component={InitialSecondPhase} />
       </Stack.Navigator>
     </NavigationContainer>
   );
