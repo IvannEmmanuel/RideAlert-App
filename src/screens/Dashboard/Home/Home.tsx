@@ -49,6 +49,17 @@ const HomeScreen = () => {
     }
   };
 
+  const handleCloseSearch = () => {
+    if (isSearchExpanded) {
+      Animated.timing(animation, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+      setIsSearchExpanded(false);
+    }
+  };
+
   // Fetch token and user on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -212,17 +223,25 @@ const HomeScreen = () => {
           )}
         </MapView>
       </View>
-      <View>
+      <TouchableOpacity
+        onPress={handleSearchPress}
+        disabled={isSearchExpanded}  // disable if already expanded
+      >
         <Animated.View style={[homeStyles.searchContainer, animatedStyle]}>
           {!isSearchExpanded ? (
             <Image source={require('../../../images/search.png')} />
           ) : (
             <>
               <View style={{ alignSelf: 'center', bottom: 30, justifyContent: 'center' }}>
-                <View style={homeStyles.stroke} />
+                {/* stroke is now touchable to collapse */}
+                <TouchableOpacity onPress={handleCloseSearch}>
+                  <View style={homeStyles.stroke} />
+                </TouchableOpacity>
+
                 <Text style={homeStyles.rideText}>Looking for a ride?</Text>
               </View>
-              <TouchableOpacity style={homeStyles.subMainSearchContainer} onPress={handleSearchPress}>
+
+              <TouchableOpacity style={homeStyles.subMainSearchContainer}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Image source={require('../../../images/search.png')} />
                   <Text style={homeStyles.searchText}>Search Buses</Text>
@@ -231,7 +250,8 @@ const HomeScreen = () => {
             </>
           )}
         </Animated.View>
-      </View>
+      </TouchableOpacity>
+
     </View>
   );
 };
