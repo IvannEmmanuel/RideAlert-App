@@ -1,10 +1,22 @@
 import { StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import React from 'react';
 import LottieView from 'lottie-react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const { height, width } = Dimensions.get('window');
 
 const InitialSecondPhase = () => {
+
+    const navigation = useNavigation();
+
+    const loginPress = () => {
+        navigation.navigate('Login');
+    }
+
+    const createPress = () => {
+        navigation.navigate('Register');
+    }
+
     return (
         <>
             <View style={styles.container}>
@@ -20,10 +32,10 @@ const InitialSecondPhase = () => {
                 </View>
             </View>
             <View style={styles.accountContainer}>
-                <TouchableOpacity style={styles.createAccountButton}>
+                <TouchableOpacity style={styles.createAccountButton} onPress={createPress}>
                     <Text style={styles.createAccountText}>Create an account</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginAccountButton}>
+                <TouchableOpacity style={styles.loginAccountButton} onPress={loginPress}>
                     <Text style={styles.loginAccountText}>Log in</Text>
                 </TouchableOpacity>
             </View>

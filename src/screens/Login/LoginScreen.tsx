@@ -1,104 +1,133 @@
 import {
-  View,
   Text,
+  View,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
-import React, { useState } from 'react';
-import loginStyles from '../../styles/loginStyles';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+  Image,
+  Alert,
+  BackHandler,
+} from "react-native";
+import React, { useState, useEffect } from "react";
+import { loginStyles as styles } from "../../styles/loginStyles";
 import { BASE_URL } from '../../config/apiConfig';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 
-const LoginScreen = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+const LoginNew = () => {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
   const navigation = useNavigation();
 
+  const handleRegister = () => {
+    navigation.navigate("Register");
+  }
+
   const handleLogin = async () => {
+    setErrorMessage(""); // reset old error first
+
+    // simple frontend validation
+    if (!email || !password) {
+      setErrorMessage("Email and password are required.");
+      return;
+    }
+
     try {
       const response = await axios.post(`${BASE_URL}/users/login`, {
         email,
         password,
       });
 
-        const access_token = response.data.access_token;
-        const user = response.data.user;
+      const access_token = response.data.access_token;
+      const user = response.data.user;
 
-        // Store the token in AsyncStorage
-        await AsyncStorage.setItem('access_token', access_token);
-        await AsyncStorage.setItem('user', JSON.stringify(user));
+      // Store the token
+      await AsyncStorage.setItem("access_token", access_token);
+      await AsyncStorage.setItem("user", JSON.stringify(user));
 
-        console.log('Login successful, token:', access_token);
-        console.log('User data:', user);
+      console.log("Login successful, token:", access_token);
+      console.log("User data:", user);
 
-      navigation.navigate('Panel');
+      navigation.navigate("Panel");
     } catch (error) {
-      console.error('Login failed:', error);
+      console.log("Login failed:", error);
+
+      if (error.response) {
+        if (error.response.status === 401) {
+          setErrorMessage("Wrong email or password.");
+        } else {
+          setErrorMessage(error.response.data.message || "Something went wrong. Please try again.");
+        }
+      } else {
+        setErrorMessage("Unable to connect. Check your internet connection.");
+      }
     }
   };
 
+
+
   return (
-    <SafeAreaView style={loginStyles.container}>
-      <View style={loginStyles.topBanner} />
-      <View style={loginStyles.card}>
-        <Text style={loginStyles.title}>Login Account</Text>
-
-        <View style={loginStyles.inputWrapper}>
-          <Icon name="user" size={18} color="#777" style={loginStyles.icon} />
+    <View style={styles.container}>
+      <View style={styles.loginContainer}>
+        <Text style={styles.loginText}>Log in</Text>
+        <Text style={styles.subLoginText}>
+          Access your account to cast your vote, and be part of a secure and
+          transparent voting process.
+        </Text>
+        <TextInput
+          placeholder="Email*"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.emailInput}
+        />
+        <View style={styles.passwordContainer}>
           <TextInput
-            placeholder="Username or Email"
-            style={loginStyles.input}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholderTextColor="#777"
-          />
-        </View>
-
-        <View style={loginStyles.inputWrapper}>
-          <Icon name="lock" size={18} color="#777" style={loginStyles.icon} />
-          <TextInput
-            placeholder="Password"
-            style={loginStyles.input}
-            placeholderTextColor="#777"
-            secureTextEntry={!showPassword}
+            placeholder="Password*"
+            style={styles.passwordInput}
             value={password}
             onChangeText={setPassword}
+            secureTextEntry={!passwordVisible}
           />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Icon
-              name={showPassword ? 'eye-slash' : 'eye'}
-              size={18}
-              color="#777"
+          <TouchableOpacity
+            style={styles.emojiContainer}
+            onPress={() => setPasswordVisible(!passwordVisible)}
+          >
+            <Image
+              source={
+                passwordVisible
+                  ? require("../../images/eye-close.png")
+                  : require("../../images/eye-open.png")
+              }
+              style={styles.eyeIcon}
             />
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={loginStyles.forgot}>
-          <Text style={loginStyles.forgotText}>Forgot Password?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={loginStyles.loginButton} onPress={handleLogin}>
-          <Text style={loginStyles.loginText}>LOGIN</Text>
-        </TouchableOpacity>
-
-        <Text style={loginStyles.orText}>OR</Text>
-
+        {errorMessage ? (
+          <View style={{ alignSelf: "center", top: 5 }}>
+            <Text style={{ color: "red", top: 5 }}>{errorMessage}</Text>
+          </View>
+        ) : null}
         <TouchableOpacity
-          style={loginStyles.createButton}
-          onPress={() => navigation.navigate('Register')}
+          style={styles.continueContainer}
+          onPress={handleLogin}
         >
-          <Text style={loginStyles.createText}>CREATE ACCOUNT</Text>
+          <Text style={styles.continueText}>Continue</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.forgotContainer}>
+          <Text style={styles.forgotText}>Forgot password?</Text>
+        </TouchableOpacity>
+        <View style={styles.accountContainer}>
+          <Text style={styles.dontText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={handleRegister}>
+            <Text style={styles.createText}>Create now.</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
-export default LoginScreen;
+export default LoginNew;
