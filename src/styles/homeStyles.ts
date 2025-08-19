@@ -12,6 +12,11 @@ const homeStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  subTopContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20
+  },
   profileContainer: {
     alignSelf: 'center',
     height: 50,
@@ -29,6 +34,10 @@ const homeStyles = StyleSheet.create({
     textAlignVertical: 'center',
     includeFontPadding: false,
   },
+  informationContainer: {
+    flexDirection: 'column',
+    paddingHorizontal: 20
+  },
   goodmorningText: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 20,
@@ -37,6 +46,12 @@ const homeStyles = StyleSheet.create({
   userText: {
     fontFamily: 'Montserrat-Bold',
     fontSize: 25,
+  },
+  settingContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 30,
+    gap: 20,
+    alignItems: 'center'
   },
   notification: {
     width: 37,
@@ -67,6 +82,11 @@ const homeStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
+  subSearchContainer: {
+    alignSelf: 'center',
+    bottom: 30,
+    justifyContent: 'center'
+  },
   mainSearchContainer: {
     backgroundColor: '#F7F6FB',
     width: '100%',
@@ -85,6 +105,10 @@ const homeStyles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     paddingHorizontal: 20
+  },
+  subOfMainSearchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
   },
   searchText: {
     right: 80,

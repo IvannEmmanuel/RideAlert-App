@@ -188,17 +188,17 @@ const HomeScreen = () => {
   return (
     <View style={homeStyles.container}>
       <View style={homeStyles.topContainer}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
+        <View style={homeStyles.subTopContainer}>
           <View style={homeStyles.profileContainer}>
             <Text style={homeStyles.profileText}>
               {user?.first_name?.charAt(0)?.toUpperCase() || ''}
             </Text>
           </View>
-          <View style={{ flexDirection: 'column', paddingHorizontal: 20 }}>
+          <View style={homeStyles.informationContainer}>
             <Text style={homeStyles.goodmorningText}>{getGreeting()}</Text>
             <Text style={homeStyles.userText}>{user?.first_name}</Text>
           </View>
-          <View style={{ flexDirection: 'row', paddingHorizontal: 30, gap: 20, alignItems: 'center' }}>
+          <View style={homeStyles.settingContainer}>
             <TouchableOpacity>
               <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
             </TouchableOpacity>
@@ -232,7 +232,7 @@ const HomeScreen = () => {
             <Image source={require('../../../images/search.png')} />
           ) : (
             <>
-              <View style={{ alignSelf: 'center', bottom: 30, justifyContent: 'center' }}>
+              <View style={homeStyles.subSearchContainer}>
                 {/* stroke is now touchable to collapse */}
                 <TouchableOpacity onPress={handleCloseSearch}>
                   <View style={homeStyles.stroke} />
@@ -242,7 +242,7 @@ const HomeScreen = () => {
               </View>
 
               <TouchableOpacity style={homeStyles.subMainSearchContainer}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <View style={homeStyles.subOfMainSearchContainer}>
                   <Image source={require('../../../images/search.png')} />
                   <Text style={homeStyles.searchText}>Search Buses</Text>
                 </View>
