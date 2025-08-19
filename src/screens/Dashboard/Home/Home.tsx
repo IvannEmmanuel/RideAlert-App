@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, Dimensions, TouchableOpacity, Image, Animated } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { getToken } from '../../../utils/authStorage';
+import { getToken, getUser } from '../../../utils/authStorage';
 import { getFCMToken } from '../../../utils/fcmStorage';
 import { requestLocationPermission, getCurrentLocation } from './useLocation';
 import { sendLocationToBackend } from './sendLocation';
@@ -17,7 +17,10 @@ const HomeScreen = () => {
     longitude: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const mapRef = useRef<MapView>(null);
+  const animation = useRef(new Animated.Value(0)).current;
 
   const DEFAULT_LATITUDE = 8.485255;
   const DEFAULT_LONGITUDE = 124.653642;
@@ -28,13 +31,33 @@ const HomeScreen = () => {
     longitudeDelta: 0.01,
   };
 
-  // Fetch token on mount
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 18) return 'Good Afternoon,';
+    return 'Good Evening,';
+  };
+
+  const handleSearchPress = () => {
+    if (!isSearchExpanded) {
+      Animated.timing(animation, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+      setIsSearchExpanded(true);
+    }
+  };
+
+  // Fetch token and user on mount
   useEffect(() => {
-    const fetchToken = async () => {
+    const fetchData = async () => {
       const t = await getToken();
+      const userData = await getUser();
       setToken(t);
+      setUser(userData);
     };
-    fetchToken();
+    fetchData();
   }, []);
 
   // Request permission and get initial location
@@ -101,7 +124,7 @@ const HomeScreen = () => {
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         },
-        1000, // 1 second animation
+        1000,
       );
     }
   }, [location]);
@@ -112,47 +135,103 @@ const HomeScreen = () => {
     console.log('FCM Token from Home:', FCMtoken);
   }, []);
 
+  const animatedStyle = {
+    width: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [60, Dimensions.get('window').width],
+    }),
+    height: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [60, 210],
+    }),
+    borderTopLeftRadius: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [100, 48],
+    }),
+    borderTopRightRadius: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [100, 48],
+    }),
+    borderBottomLeftRadius: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [100, 0],
+    }),
+    borderBottomRightRadius: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [100, 0],
+    }),
+    backgroundColor: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['#0500FE', '#F7F6FB'],
+    }),
+    bottom: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [30, 0],
+    }),
+    left: animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [20, 0],
+    }),
+  };
+
   return (
     <View style={homeStyles.container}>
-      <MapView
-        ref={mapRef}
-        style={{ flex: 1, width: '100%' }}
-        initialRegion={DEFAULT_REGION}
-        showsUserLocation={true}
-      >
-        {location && (
-          <Marker
-            coordinate={location}
-            title="You are here"
-          />
-        )}
-      </MapView>
-      <View style={homeStyles.searchContainer}>
-        <View style={homeStyles.outerContainer}>
-          <View style={homeStyles.strokeMainContainer}>
-            <View style={homeStyles.strokeContainer} />
+      <View style={homeStyles.topContainer}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
+          <View style={homeStyles.profileContainer}>
+            <Text style={homeStyles.profileText}>
+              {user?.first_name?.charAt(0)?.toUpperCase() || ''}
+            </Text>
           </View>
-          <View style={homeStyles.innerContainer}>
-            <TextInput
-              style={homeStyles.input}
-              placeholder="Search location"
-              placeholderTextColor="#888"
-              mode="outlined"
-              theme={{ roundness: 5 }}
-            />
-            <TextInput
-              style={homeStyles.input}
-              placeholder="Search for destination"
-              placeholderTextColor="#888"
-              mode="outlined"
-              theme={{ roundness: 5 }}
-            />
+          <View style={{ flexDirection: 'column', paddingHorizontal: 20 }}>
+            <Text style={homeStyles.goodmorningText}>{getGreeting()}</Text>
+            <Text style={homeStyles.userText}>{user?.first_name}</Text>
           </View>
-          <TouchableOpacity style={homeStyles.button}>
-            <Text style={homeStyles.buttonText}>Find Nearby bus</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', paddingHorizontal: 30, gap: 20, alignItems: 'center' }}>
+            <TouchableOpacity>
+              <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Image source={require('../../../images/settings.png')} style={homeStyles.settings} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
+      <View style={homeStyles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          style={homeStyles.map}
+          initialRegion={DEFAULT_REGION}
+          showsUserLocation={true}
+        >
+          {location && (
+            <Marker
+              coordinate={location}
+              title="You are here"
+            />
+          )}
+        </MapView>
+      </View>
+      <TouchableOpacity onPress={handleSearchPress}>
+        <Animated.View style={[homeStyles.searchContainer, animatedStyle]}>
+          {!isSearchExpanded ? (
+            <Image source={require('../../../images/search.png')} />
+          ) : (
+            <>
+              <View style={{ alignSelf: 'center', bottom: 30, justifyContent: 'center' }}>
+                <View style={homeStyles.stroke} />
+                <Text style={homeStyles.rideText}>Looking for a ride?</Text>
+              </View>
+              <TouchableOpacity style={homeStyles.subMainSearchContainer}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Image source={require('../../../images/search.png')} />
+                  <Text style={homeStyles.searchText}>Search Buses</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
+        </Animated.View>
+      </TouchableOpacity>
     </View>
   );
 };

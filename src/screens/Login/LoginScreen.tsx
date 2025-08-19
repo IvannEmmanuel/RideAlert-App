@@ -51,7 +51,7 @@ const LoginNew = () => {
       console.log("Login successful, token:", access_token);
       console.log("User data:", user);
 
-      navigation.navigate("Panel");
+      navigation.navigate("Home"); //Panel
     } catch (error) {
       console.log("Login failed:", error);
 
