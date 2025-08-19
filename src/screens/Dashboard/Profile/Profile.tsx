@@ -29,7 +29,7 @@ const Profile = () => {
 
   const handleLogout = async () => {
     await removeToken();
-    navigation.navigate('Login');
+    navigation.navigate('InitialSecondPhase');
   };
 
   return (

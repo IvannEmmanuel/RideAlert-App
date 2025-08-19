@@ -51,7 +51,7 @@ const LoginNew = () => {
       console.log("Login successful, token:", access_token);
       console.log("User data:", user);
 
-      navigation.navigate("Panel");
+      navigation.navigate("Home"); //Panel
     } catch (error) {
       console.log("Login failed:", error);
 
@@ -74,8 +74,8 @@ const LoginNew = () => {
       <View style={styles.loginContainer}>
         <Text style={styles.loginText}>Log in</Text>
         <Text style={styles.subLoginText}>
-          Access your account to cast your vote, and be part of a secure and
-          transparent voting process.
+          Access your account to enjoy a safe, 
+          hassle-free ride with Orotsco Bus.
         </Text>
         <TextInput
           placeholder="Email*"

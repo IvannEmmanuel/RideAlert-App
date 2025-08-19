@@ -50,6 +50,7 @@ const styles = StyleSheet.create({
         flex: 1,
         alignSelf: 'center',
         justifyContent: 'center',
+        backgroundColor: "#F7F6FB"
     },
     lottieContainer: {
         width: width * 1,
