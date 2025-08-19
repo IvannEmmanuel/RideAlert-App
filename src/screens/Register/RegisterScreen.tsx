@@ -1,195 +1,387 @@
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
-import registerStyles from '../../styles/registerStyles';
-import { RadioButton } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
 import { BASE_URL } from '../../config/apiConfig';
+import { registerStyles as styles } from "../../styles/registerStyles";
+import {
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Pressable,
+  BackHandler,
+} from "react-native";
+import React, { useState, useEffect } from "react";
+import { useNavigation } from "@react-navigation/native";
+import axios from 'axios';
 
-const RegisterScreen = () => {
-  const [checked, setChecked] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [address, setAddress] = useState('');
-  const [securePassword, setSecurePassword] = useState(true);
-  const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
+const Register = () => {
   const navigation = useNavigation();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showError, setShowError] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [address, setAddress] = useState("");
+  const [gender, setGender] = useState("");
+  const [isChecked, setIsChecked] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [passwordValid, setPasswordValid] = useState(false);
+  const [passwordsMatch, setPasswordsMatch] = useState(true);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const handleRegister = async () => {
+  const loginPress = () => {
+    console.log("Navigating to Login screen");
+    navigation.navigate("Login");
+  };
+
+  const register = async (firstName, lastName, email, password, address, gender) => {
     try {
-      if (password !== confirmPassword) {
-        console.log('Password and Confirm Password does not match');
-        return;
-      }
-
       const response = await axios.post(`${BASE_URL}/users/register`, {
         first_name: firstName,
         last_name: lastName,
         email,
         password,
         address,
-        gender: checked,
+        gender,
       });
-
-      console.log(response.data);
-      console.log('Registered Successfully');
-      navigation.navigate('Login');
-    } catch (e) {
-      console.log('Error', e);
+      console.log("API Response:", response.status, response.data);
+      return response;
+    } catch (error) {
+      const message = error.response?.data?.message || "An unexpected error occurred.";
+      console.error("Registration API error:", message);
+      throw new Error(message);
     }
   };
 
+  useEffect(() => {
+    if (password || confirmPassword) {
+      setPasswordsMatch(password === confirmPassword);
+      if (password) {
+        const isValid = validatePassword(password);
+        setPasswordValid(isValid);
+        setShowPasswordRequirements(!isValid);
+      }
+    }
+  }, [password, confirmPassword]);
+
+  const handleContinue = async () => {
+    setErrorMessage("");
+    setShowError(false);
+
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !address || !isChecked) {
+      setErrorMessage("Please fill out all required fields");
+      setShowError(true);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match");
+      setShowError(true);
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setErrorMessage("Password does not meet requirements");
+      setShowError(true);
+      return;
+    }
+
+    if (!isChecked) {
+      setErrorMessage("Please accept the terms and conditions");
+      setShowError(true);
+      return;
+    }
+
+    if (!gender) {
+      setErrorMessage("Please select a gender");
+      setShowError(true);
+      return;
+    }
+
+    try {
+      const response = await register(firstName, lastName, email, password, address, gender);
+      if (response.status >= 200 && response.status < 300) {
+        console.log("Registration successful, showing success modal");
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error during signup:", error.message);
+      Alert.alert(
+        "Registration Error",
+        error.message || "An unexpected error occurred. Please try again.",
+        [
+          { text: "OK", onPress: () => console.log("OK Pressed") },
+          { text: "Go to Login", onPress: () => loginPress() },
+        ]
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (showError) {
+      const timer = setTimeout(() => {
+        setShowError(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showError]);
+
+  useEffect(() => {
+    if (showSuccessModal) {
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => true
+      );
+      return () => backHandler.remove();
+    }
+  }, [showSuccessModal]);
+
+  const validatePassword = (pass) => {
+    let criteria = 0;
+    if (pass.length >= 6) {
+      if (/[A-Z]/.test(pass)) criteria++;
+      if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pass)) criteria++;
+      if (/[0-9]/.test(pass)) criteria++;
+      return criteria >= 3;
+    }
+    return false;
+  };
+
+  const RadioButton = ({ label, value, selected, onPress }) => {
+    return (
+      <TouchableOpacity
+        style={styles.radioButtonContainer}
+        onPress={() => onPress(value)}
+      >
+        <View style={[styles.radioCircle, selected && styles.radioCircleSelected]}>
+          {selected && <View style={styles.radioDot} />}
+        </View>
+        <Text style={styles.radioLabel}>{label}</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <View style={registerStyles.container}>
-      <View style={registerStyles.topBanner} />
-      <View style={registerStyles.card}>
-        <Text style={registerStyles.title}>Create Account</Text>
-
-        {/* First and Last Name Side-by-Side */}
-        <View style={registerStyles.row}>
-          <TextInput
-            placeholder="First name"
-            style={[registerStyles.halfInput, { fontFamily: 'Inter-Regular' }]}
-            autoCapitalize="words"
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholderTextColor="#8d99ae"
-          />
-          <TextInput
-            placeholder="Last name"
-            style={[registerStyles.halfInput, { fontFamily: 'Inter-Regular' }]}
-            autoCapitalize="words"
-            value={lastName}
-            onChangeText={setLastName}
-            placeholderTextColor="#8d99ae"
-          />
-        </View>
-
-        {/* Email */}
-        <TextInput
-          placeholder="Email"
-          style={registerStyles.input}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          placeholderTextColor="#8d99ae"
-        />
-
-        {/* Password with Eye Icon */}
-        <View style={{ position: 'relative' }}>
-          <TextInput
-            placeholder="Password"
-            secureTextEntry={securePassword}
-            style={registerStyles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholderTextColor="#8d99ae"
-          />
-          <TouchableOpacity
-            onPress={() => setSecurePassword(!securePassword)}
-            style={{ position: 'absolute', right: 16, bottom: 22 }}
+    <View style={styles.container}>
+      {/* ScrollView for form content */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
           >
-            <Icon
-              name={securePassword ? 'eye-off' : 'eye'}
-              size={22}
-              color="#888"
+            <View style={styles.signUpContainer}>
+              <Text style={styles.createText}>Create an account</Text>
+              <Text style={styles.signUpText}>
+                Book your ride with Orotsco Bus! Create your account to securely reserve your seat.
+              </Text>
+
+              {showError && (
+                <View style={styles.errorSnackbar}>
+                  <Text style={styles.errorSnackbarText}>{errorMessage}</Text>
+                </View>
+              )}
+
+              <TextInput
+                placeholder="First Name*"
+                style={styles.firstNameInput}
+                value={firstName}
+                onChangeText={setFirstName}
+              />
+              <TextInput
+                placeholder="Last Name*"
+                style={styles.lastNameInput}
+                value={lastName}
+                onChangeText={setLastName}
+              />
+              <TextInput
+                placeholder="Address*"
+                style={styles.addressInput}
+                value={address}
+                onChangeText={setAddress}
+                autoCapitalize="none"
+              />
+              <TextInput
+                placeholder="Email*"
+                style={styles.emailInput}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  placeholder="Password*"
+                  style={[
+                    styles.passwordInput,
+                    !passwordValid && password.length > 0 && styles.inputError,
+                  ]}
+                  secureTextEntry={!passwordVisible}
+                  value={password}
+                  onChangeText={setPassword}
+                  onFocus={() => setShowPasswordRequirements(true)}
+                />
+                <TouchableOpacity
+                  style={styles.emojiContainer}
+                  onPress={() => setPasswordVisible(!passwordVisible)}
+                >
+                  <Image
+                    source={
+                      passwordVisible
+                        ? require("../../images/eye-close.png")
+                        : require("../../images/eye-open.png")
+                    }
+                    style={styles.eyeIcon}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {showPasswordRequirements && (
+                <View style={styles.requirementsContainer}>
+                  <Text style={styles.requirementsText}>
+                    A six character password is required with at least 3 of the following:
+                  </Text>
+                  <Text style={styles.requirementItem}>1 upper-case character</Text>
+                  <Text style={styles.requirementItem}>1 special character (e.g !@#*_)</Text>
+                  <Text style={styles.requirementItem}>1 number</Text>
+                </View>
+              )}
+
+              <View style={styles.gapSpace} />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  placeholder="Confirm Password*"
+                  style={[
+                    styles.confirmPasswordInput,
+                    !passwordsMatch && confirmPassword.length > 0 && styles.inputError,
+                  ]}
+                  secureTextEntry={!confirmPasswordVisible}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                />
+                <TouchableOpacity
+                  style={styles.emojiContainer}
+                  onPress={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+                >
+                  <Image
+                    source={
+                      confirmPasswordVisible
+                        ? require("../../images/eye-close.png")
+                        : require("../../images/eye-open.png")
+                    }
+                    style={styles.eyeIcon}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {!passwordsMatch && confirmPassword.length > 0 && (
+                <Text style={styles.errorText}>Passwords do not match</Text>
+              )}
+              <View style={styles.genderContainer}>
+                <Text style={styles.genderTitle}>Gender*</Text>
+                <View style={styles.genderOptions}>
+                  <RadioButton
+                    label="Male"
+                    value="Male"
+                    selected={gender === "Male"}
+                    onPress={setGender}
+                  />
+                  <RadioButton
+                    label="Female"
+                    value="Female"
+                    selected={gender === "Female"}
+                    onPress={setGender}
+                  />
+                </View>
+              </View>
+              <View style={styles.conditionContainer}>
+                <Pressable
+                  style={[styles.checkbox, isChecked && styles.checked]}
+                  onPress={() => setIsChecked(!isChecked)}
+                >
+                  {isChecked && <Text style={styles.checkmark}>✓</Text>}
+                </Pressable>
+                <Text style={styles.text}>
+                  By continuing, you agree to the terms & conditions and acknowledge the privacy policy.
+                </Text>
+              </View>
+              <View>
+                <TouchableOpacity
+                  style={styles.continueContainer}
+                  onPress={handleContinue}
+                >
+                  <Text style={styles.continueText}>Continue</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.loginContainer}>
+                <Text style={styles.accountText}>Already have an account? </Text>
+                <TouchableOpacity onPress={loginPress}>
+                  <Text style={styles.textLogin}>Log in</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.orContainer}>
+                <View style={styles.line} />
+                <Text style={styles.orText}>or</Text>
+                <View style={styles.line} />
+              </View>
+              <View style={styles.socialLoginContainer}>
+                <TouchableOpacity style={styles.facebookContainer}>
+                  <Image
+                    source={require("../../images/facebook.png")}
+                    style={styles.facebookLogo}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity>
+                  <Image
+                    source={require("../../images/google.png")}
+                    style={styles.googleLogo}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+
+      {/* Success modal outside ScrollView */}
+      {showSuccessModal && (
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successModal}>
+            <Image
+              source={require("../../images/success.png")}
+              style={styles.successIcon}
             />
-          </TouchableOpacity>
+            <Text style={styles.successTitle}>SUCCESS</Text>
+            <Text style={styles.successMessage}>
+              You have successfully created an account.
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                console.log("Closing success modal and navigating to Login");
+                setShowSuccessModal(false);
+                loginPress();
+              }}
+              style={styles.closeContainer}
+            >
+              <Text style={styles.closeText}>Close</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        {/* Confirm Password with Eye Icon */}
-        <View style={{ position: 'relative' }}>
-          <TextInput
-            placeholder="Confirm Password"
-            secureTextEntry={secureConfirmPassword}
-            style={registerStyles.input}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            placeholderTextColor="#8d99ae"
-          />
-          <TouchableOpacity
-            onPress={() => setSecureConfirmPassword(!secureConfirmPassword)}
-            style={{ position: 'absolute', right: 16, bottom: 22 }}
-          >
-            <Icon
-              name={secureConfirmPassword ? 'eye-off' : 'eye'}
-              size={22}
-              color="#888"
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Address */}
-        <TextInput
-          placeholder="Address"
-          style={registerStyles.input}
-          autoCapitalize="none"
-          value={address}
-          onChangeText={setAddress}
-          placeholderTextColor="#8d99ae"
-        />
-
-        {/* Gender Selection */}
-        <View style={registerStyles.gender}>
-          <Icon
-            name="gender-male-female"
-            size={20}
-            color="#007AFF"
-            style={registerStyles.genderIcon}
-          />
-          <RadioButton.Item
-            color="#007AFF"
-            position="leading"
-            label="Male"
-            value="Male"
-            status={checked === 'Male' ? 'checked' : 'unchecked'}
-            onPress={() => setChecked('Male')}
-            labelStyle={{
-              fontFamily: 'Inter-Regular',
-              fontSize: 15,
-              color: '#1e1e1e',
-            }}
-            />
-          <RadioButton.Item
-            color="#007AFF"
-            position="leading"
-            label="Female"
-            value="Female"
-            status={checked === 'Female' ? 'checked' : 'unchecked'}
-            onPress={() => setChecked('Female')}
-            labelStyle={{
-              fontFamily: 'Inter-Regular',
-              fontSize: 15,
-              color: '#1e1e1e',
-            }}
-          />
-        </View>
-
-        {/* Create Account Button */}
-        <TouchableOpacity
-          style={registerStyles.registerButton}
-          onPress={handleRegister}
-        >
-          <Text style={registerStyles.registerButtonText}>CREATE ACCOUNT</Text>
-        </TouchableOpacity>
-
-        <Text style={registerStyles.orText}>OR</Text>
-
-        {/* Back to Login */}
-        <TouchableOpacity
-          style={registerStyles.backButton}
-          onPress={() => navigation.navigate('Login')}
-        >
-          <Text style={registerStyles.backButtonText}>BACK TO LOGIN</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 };
 
-export default RegisterScreen;
+export default Register;
