@@ -1,39 +1,72 @@
-// screens/Initial/InitialScreen.tsx
-import React from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
-import { useNotification } from "../../../src/notifications/useNotification";
-import appStyles from "../../../src/styles/appStyles";
-import { useNavigation } from "@react-navigation/native";
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React from 'react'
+import { useNavigation } from '@react-navigation/native';
+import { ImageBackground } from 'react-native';
 
-
-const InitialScreen: React.FC = () => {
-      useNotification();
-
+const InitialScreen = () => {
   const navigation = useNavigation();
 
-  const handleGetStarted = () => {
-    navigation.navigate("Login");
-  };
+  const getStartedPress = () => {
+    navigation.navigate('InitialSecondPhase');
+  }
 
   return (
-    <View style={appStyles.container}>
-      <View style={appStyles.card}>
-        <Image
-          source={require("../../../src/images/bus_image.png")}
-          style={appStyles.image}
-          resizeMode="contain"
-        />
-        <Text style={appStyles.text}>Ride Alert</Text>
-        <TouchableOpacity
-          onPress={handleGetStarted}
-          style={appStyles.pressContainer}
-        >
-          <Text style={appStyles.pressText}>Get Started</Text>
-          <Text style={appStyles.arrow}>></Text>
+      <ImageBackground
+        source={require('../../images/puv.png')}
+        style={styles.container}
+        resizeMode="cover"
+      >
+        <View style={styles.subContainer}>
+          <Text style={styles.mainText}>RideAlert</Text>
+          <Text style={styles.subText}>Ride made easier.</Text>
+        </View>
+        <TouchableOpacity style={styles.buttonContainer} onPress={getStartedPress}>
+          <Text style={styles.textButton}>Get Started</Text>
+          <Text style={styles.subTextButton}>></Text>
         </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
+      </ImageBackground>
+  )
+}
 
-export default InitialScreen;
+export default InitialScreen
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#FEFEFE',
+    justifyContent: 'space-around',
+  },
+  subContainer: {
+    alignItems: 'center',
+  },
+  mainText: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 70,
+    color: '#0500FE',
+    bottom: 10,
+  },
+  subText: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 25,
+    color: '#0065F8',
+    bottom: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    top: 50,
+    borderRadius: 50,
+    alignItems: 'center',
+    gap: 50,
+  },
+  textButton: {
+    fontSize: 24,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+  },
+  subTextButton: {
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
+    color: '#FFFFFF',
+  }
+})
