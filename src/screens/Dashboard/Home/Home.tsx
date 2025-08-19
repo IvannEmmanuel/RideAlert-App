@@ -212,7 +212,7 @@ const HomeScreen = () => {
           )}
         </MapView>
       </View>
-      <TouchableOpacity onPress={handleSearchPress}>
+      <View>
         <Animated.View style={[homeStyles.searchContainer, animatedStyle]}>
           {!isSearchExpanded ? (
             <Image source={require('../../../images/search.png')} />
@@ -222,7 +222,7 @@ const HomeScreen = () => {
                 <View style={homeStyles.stroke} />
                 <Text style={homeStyles.rideText}>Looking for a ride?</Text>
               </View>
-              <TouchableOpacity style={homeStyles.subMainSearchContainer}>
+              <TouchableOpacity style={homeStyles.subMainSearchContainer} onPress={handleSearchPress}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Image source={require('../../../images/search.png')} />
                   <Text style={homeStyles.searchText}>Search Buses</Text>
@@ -231,7 +231,7 @@ const HomeScreen = () => {
             </>
           )}
         </Animated.View>
-      </TouchableOpacity>
+      </View>
     </View>
   );
 };
