@@ -1,89 +1,95 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from "react-native";
 
-export default StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#5AC2E6',
-    },
-    topBanner: {
-        height: 180,
-        backgroundColor: '#5AC2E6',
-        //borderBottomLeftRadius: 30,
-        //borderBottomRightRadius: 30,
-    },
-    card: {
-        flex: 1,
-        backgroundColor: '#f7f7f7ff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingHorizontal: 30,  // internal spacing inside the card
-        paddingVertical: 40,
-        marginTop: -30,
-        zIndex: 1,
-        },
+const { height } = Dimensions.get("window");
 
-    title: {
-        fontSize: 26,
-        fontFamily: 'Inter-Bold',
-        marginBottom: 50,
-        color: '#000',
-        },
-
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        marginBottom: 15,
-        height: 50,
-        borderWidth: 1,
-        borderColor: '#ccc',
-    },
-    icon: {
-        marginRight: 10,
-    },
-    input: {
-        fontFamily: 'Inter-Regular',
-        flex: 1,
-        color: '#000',
-    },
-    forgot: {
-        alignSelf: 'flex-end',
-        marginBottom: 20,
-        width: '30%',
-    },
-    forgotText: {
-        fontFamily: 'Inter-Regular',
-        color: '#dc143c',
-        fontSize: 12,
-    },
-    loginButton: {
-        backgroundColor: '#00BFFF',
-        paddingVertical: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    loginText: {
-        fontFamily: 'Inter-Bold',
-        color: '#fff',
-        fontSize: 16,
-    },
-    orText: {
-        textAlign: 'center',
-        marginVertical: 10,
-        color: '#555',
-    },
-    createButton: {
-        backgroundColor: '#fff',
-        paddingVertical: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ccc',
-    },
-    createText: {
-        color: '#333',
-        fontFamily: 'Inter-Bold',
-    },
+const loginStyles = StyleSheet.create({
+  container: {
+    backgroundColor: "#FFFFFF",
+    flex: 1,
+    alignItems: "center"
+  },
+  loginContainer: {
+    top: height * 0.1,
+    justifyContent: "center",
+    width: height * 0.43,
+  },
+  loginText: {
+    fontFamily: "Montserrat-Bold",
+    fontSize: 36,
+  },
+  subLoginText: {
+    fontFamily: "Montserrat-Medium",
+    fontSize: 14,
+    marginBottom: height * 0.05,
+  },
+  emailInput: {
+    height: height * 0.07,
+    fontSize: 16,
+    paddingLeft: height * 0.02,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: height * 0.02,
+  },
+  passwordContainer: {
+    position: "relative",
+    width: "100%",
+  },
+  passwordInput: {
+    height: height * 0.07,
+    fontSize: 16,
+    paddingLeft: height * 0.02,
+    paddingRight: height * 0.08,
+    borderRadius: 10,
+    borderWidth: 1,
+    width: "100%",
+  },
+  emojiContainer: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: [{ translateY: -12 }],
+  },
+  eyeIcon: {
+    width: 30,
+    height: 20,
+    tintColor: "#1E1E1E",
+  },
+  continueContainer: {
+    backgroundColor: "#111B56D4",
+    borderRadius: 20,
+    height: height * 0.07,
+    justifyContent: "center",
+    top: height * 0.03,
+    marginBottom: height * 0.05,
+  },
+  continueText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    textAlign: "center",
+  },
+  forgotContainer: {
+    width: height * 0.25,
+    alignSelf: "center",
+  },
+  forgotText: {
+    fontSize: 15,
+    fontFamily: "Montserrat-Medium",
+    textAlign: "center",
+  },
+  accountContainer: {
+    flexDirection: "row",
+    top: height * 0.3,
+    justifyContent: "center",
+  },
+  dontText: {
+    fontFamily: "Montserrat-Medium",
+    fontSize: 15,
+  },
+  createText: {
+    fontFamily: "Montserrat-Bold",
+    fontSize: 15,
+    color: "#111B56",
+  },
 });
+
+module.exports = { loginStyles };
