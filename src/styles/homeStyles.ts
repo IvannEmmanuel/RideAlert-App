@@ -5,17 +5,17 @@ const { height, width } = Dimensions.get('window');
 const homeStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F6FB',
+    backgroundColor: '#F7F6FB'
   },
   topContainer: {
-    flex: 0.1,
+    flex: 0.125,
+    top: 10,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   subTopContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20
   },
   profileContainer: {
     alignSelf: 'center',
@@ -36,12 +36,12 @@ const homeStyles = StyleSheet.create({
   },
   informationContainer: {
     flexDirection: 'column',
-    paddingHorizontal: 20
+    paddingHorizontal: 30
   },
   goodmorningText: {
     fontFamily: 'Montserrat-Regular',
-    fontSize: 20,
-    marginBottom: -10,
+    fontSize: 18,
+    marginBottom: -10
   },
   userText: {
     fontFamily: 'Montserrat-Bold',
@@ -49,17 +49,16 @@ const homeStyles = StyleSheet.create({
   },
   settingContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 30,
     gap: 20,
     alignItems: 'center'
   },
   notification: {
-    width: 37,
-    height: 30,
+    width: 34,
+    height: 25,
   },
   settings: {
-    width: 27,
-    height: 27,
+    width: 25,
+    height: 25,
   },
   mapContainer: {
     flex: 0.9,

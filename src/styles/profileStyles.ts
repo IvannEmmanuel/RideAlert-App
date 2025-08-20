@@ -3,69 +3,86 @@ import { StyleSheet, Dimensions } from 'react-native';
 const { width, height } = Dimensions.get('window');
 
 const profileStyles = StyleSheet.create({
-  header: {
-    backgroundColor: '#FFF',
-    flex: 1
-  },
   container: {
-    backgroundColor: '#5AC2E6',
-    flex: 0.5,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30
+    top: 20,
+    paddingVertical: 10,
+    width: '100%',
+    height: height * 0.25,
+    borderBottomRightRadius: 45,
+    borderBottomLeftRadius: 45,
+    paddingHorizontal: 20,
+  },
+  mainProfileContainer: {
+    flexDirection: 'row'
   },
   profileContainer: {
-    alignSelf: 'center',
-    top: -60,
-    height: '15%',
-    width: '30%',
+    top: 10,
+    height: 70,
+    width: 70,
     borderRadius: 100,
-    backgroundColor: '#5e5e5eff'
-  },
-  informationContainer: {
-    top: -20,
-    flexDirection: 'column',
-    alignSelf: 'center',
-  },
-  mainInformationText: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 16,
-    bottom: 10,
-  },
-  stroke: {
-    alignSelf: 'center',
-    width: 370,
-    backgroundColor: '#D9D9D9',
-    height: 3,
-  },
-  subInformationContainer: {
-    marginBottom: 20,
-  },
-  valueInformationText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 15
-  },
-  subInformationText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 15,
-    color: '#757575',
-    marginTop: 10,
-  },
-  logoutButton: {
-    paddingHorizontal: 20
-  },
-  logoutText: {
-    color: '#0065F8',
-    fontFamily: 'Inter-Medium',
-    fontSize: 15
+    backgroundColor: '#464646ff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileText: {
     color: '#fff',
-    fontSize: 48,
+    fontSize: 20,
     fontFamily: 'Inter-Bold',
     textAlign: 'center',
     textAlignVertical: 'center',
     includeFontPadding: false,
-    flex: 1
+  },
+  subTopHeader: {
+    justifyContent: 'center',
+    paddingHorizontal: 20
+  },
+  fullNameText: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 22
+  },
+  emailText: {
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    bottom: 4
+  },
+  personalText: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 18
+  },
+  informationContainer: {
+    backgroundColor: "#FFFFFF",
+    width: 380,
+    height: 330,
+    alignSelf: 'center',
+    borderRadius: 10,
+    flexDirection: 'column',
+    justifyContent: 'center'
+  },
+  subFirstInformationContainer: {
+    paddingHorizontal: 20,
+  },
+  subInformationContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20
+  },
+  accountContainer: {
+    paddingHorizontal: 20, top: 20 
+  },
+  accountText: { 
+    fontFamily: 'Montserrat-Bold', fontSize: 16 
+  },
+  logoutContainer: { 
+    backgroundColor: '#FA0A0A', 
+    width: '100%', 
+    height: 50, 
+    borderRadius: 10, 
+    justifyContent: 'center', 
+    marginTop: 20 
+  },
+  logoutText: {
+    textAlign: 'center', 
+    color: '#FFFFFF', 
+    fontSize: 18
   }
 });
 
