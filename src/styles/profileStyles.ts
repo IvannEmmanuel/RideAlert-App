@@ -72,7 +72,7 @@ const profileStyles = StyleSheet.create({
     fontFamily: 'Montserrat-Bold', fontSize: 16 
   },
   logoutContainer: { 
-    backgroundColor: '#FA0A0A', 
+    backgroundColor: '#f34747ff', 
     width: '100%', 
     height: 50, 
     borderRadius: 10, 
