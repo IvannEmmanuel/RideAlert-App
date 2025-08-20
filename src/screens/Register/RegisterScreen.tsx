@@ -199,12 +199,14 @@ const Register = () => {
                 style={styles.firstNameInput}
                 value={firstName}
                 onChangeText={setFirstName}
+                placeholderTextColor="#888" // Set a visible color
               />
               <TextInput
                 placeholder="Last Name*"
                 style={styles.lastNameInput}
                 value={lastName}
                 onChangeText={setLastName}
+                placeholderTextColor="#888" // Set a visible color
               />
               <TextInput
                 placeholder="Address*"
@@ -212,6 +214,7 @@ const Register = () => {
                 value={address}
                 onChangeText={setAddress}
                 autoCapitalize="none"
+                placeholderTextColor="#888" // Set a visible color
               />
               <TextInput
                 placeholder="Email*"
@@ -220,6 +223,7 @@ const Register = () => {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                placeholderTextColor="#888" // Set a visible color
               />
               <View style={styles.passwordContainer}>
                 <TextInput
@@ -232,6 +236,7 @@ const Register = () => {
                   value={password}
                   onChangeText={setPassword}
                   onFocus={() => setShowPasswordRequirements(true)}
+                  placeholderTextColor="#888" // Set a visible color
                 />
                 <TouchableOpacity
                   style={styles.emojiContainer}
@@ -270,6 +275,7 @@ const Register = () => {
                   secureTextEntry={!confirmPasswordVisible}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
+                  placeholderTextColor="#888" // Set a visible color
                 />
                 <TouchableOpacity
                   style={styles.emojiContainer}

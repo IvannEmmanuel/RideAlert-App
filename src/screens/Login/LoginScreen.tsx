@@ -82,6 +82,7 @@ const LoginNew = () => {
           value={email}
           onChangeText={setEmail}
           style={styles.emailInput}
+          placeholderTextColor="#888" // Set a visible color
         />
         <View style={styles.passwordContainer}>
           <TextInput
@@ -90,6 +91,7 @@ const LoginNew = () => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordVisible}
+            placeholderTextColor="#888" // Set a visible color
           />
           <TouchableOpacity
             style={styles.emojiContainer}
