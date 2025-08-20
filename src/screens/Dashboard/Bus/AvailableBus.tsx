@@ -10,7 +10,7 @@ const AvailableBus = () => {
     const navigation = useNavigation();
     const [isNotifyVisible, setIsNotifyVisible] = useState(false);
     const [selectedRoute, setSelectedRoute] = useState('');
-    const slideAnim = useState(new Animated.Value(height))[0]; // Start off-screen at bottom
+    const slideAnim = useState(new Animated.Value(height))[0];
 
     const onPressBack = () => {
         navigation.navigate('Home');
