@@ -2,20 +2,21 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
-  TextInput,
-  ScrollView,
 } from 'react-native';
-import { removeToken } from '../../../utils/authStorage';
+import LinearGradient from 'react-native-linear-gradient'; // 👈 import
+import { removeToken, getUser } from '../../../utils/authStorage';
 import { useNavigation } from '@react-navigation/native';
 import profileStyles from '../../../styles/profileStyles';
-import { Image } from 'react-native';
-import { getUser } from '../../../utils/authStorage';
 
 const Profile = () => {
   const navigation = useNavigation();
-  const [editMode, setEditMode] = useState(false);
   const [user, setUser] = useState<any>(null);
+
+  const handleBack = () => {
+    navigation.navigate('Home')
+  }
 
   const fullName = user ? `${user.first_name} ${user.last_name}` : 'Loading...';
 
@@ -33,37 +34,57 @@ const Profile = () => {
   };
 
   return (
-    <View style={profileStyles.header}>
-      <View style={profileStyles.container} />
-      <View style={profileStyles.profileContainer}>
-        <Text style={profileStyles.profileText}>
-          {user?.first_name?.charAt(0)?.toUpperCase() || ''}
-        </Text>
-      </View>
+    <>
+      <LinearGradient
+        colors={['#8785f1ff', '#D8D8DF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={profileStyles.container}
+      >
+        <TouchableOpacity onPress={handleBack}>
+          <Image source={require('../../../images/back-arrow.png')} />
+        </TouchableOpacity>
+        <View style={profileStyles.mainProfileContainer}>
+          <View style={profileStyles.profileContainer}>
+            <Text style={profileStyles.profileText}>
+              {user?.first_name?.charAt(0)?.toUpperCase() || ''}
+            </Text>
+          </View>
+          <View style={profileStyles.subTopHeader}>
+            <Text style={profileStyles.fullNameText}>{fullName || 'N/A'}</Text>
+            <Text style={profileStyles.emailText}>{user?.email}</Text>
+          </View>
+        </View>
+        <View style={{ top: 60 }}>
+          <Text style={profileStyles.personalText}>Personal Information</Text>
+        </View>
+      </LinearGradient>
       <View style={profileStyles.informationContainer}>
-        <Text style={profileStyles.mainInformationText}>Personal Information</Text>
-        <View style={profileStyles.stroke} />
-        <View style={profileStyles.subInformationContainer}>
-          <Text style={profileStyles.subInformationText}>Name</Text>
-          <Text style={profileStyles.valueInformationText}>{user ? fullName || 'N/A' : ''}</Text>
-          <Text style={profileStyles.subInformationText}>Gender</Text>
-          <Text style={profileStyles.valueInformationText}>{user ? user.gender || 'N/A' : ''}</Text>
-          <Text style={profileStyles.subInformationText}>Address</Text>
-          <Text style={profileStyles.valueInformationText}>{user ? user.address || 'N/A' : ''}</Text>
+        <View style={profileStyles.subFirstInformationContainer}>
+          <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16 }}>Name</Text>
+          <Text style={{ fontFamily: 'Montserrat-Regular', fontSize: 16 }}>{user?.first_name}</Text>
         </View>
-        <Text style={profileStyles.mainInformationText}>Contact Information</Text>
-        <View style={profileStyles.stroke} />
         <View style={profileStyles.subInformationContainer}>
-          <Text style={profileStyles.subInformationText}>Email</Text>
-          <Text style={profileStyles.valueInformationText}>{user ? user.email || 'N/A' : ''}</Text>
+          <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16 }}>Last Name</Text>
+          <Text style={{ fontFamily: 'Montserrat-Regular', fontSize: 16 }}>{user?.last_name}</Text>
         </View>
-        <Text style={profileStyles.mainInformationText}>Account Settings</Text>
-        <View style={profileStyles.stroke} />
+        <View style={profileStyles.subInformationContainer}>
+          <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16 }}>Gender</Text>
+          <Text style={{ fontFamily: 'Montserrat-Regular', fontSize: 16 }}>{user?.gender}</Text>
+        </View>
+        <View style={profileStyles.subInformationContainer}>
+          <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16 }}>City</Text>
+          <Text style={{ fontFamily: 'Montserrat-Regular', fontSize: 16 }}>{user?.address}</Text>
+        </View>
       </View>
-      <TouchableOpacity style={profileStyles.logoutButton} onPress={handleLogout}>
-        <Text style={profileStyles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-    </View >
+
+      <View style={profileStyles.accountContainer}>
+        <Text style={profileStyles.accountText}>Account Settings</Text>
+        <TouchableOpacity style={profileStyles.logoutContainer} onPress={handleLogout}>
+          <Text style={profileStyles.logoutText}>Log out</Text>
+        </TouchableOpacity>
+      </View>
+    </>
   );
 };
 
