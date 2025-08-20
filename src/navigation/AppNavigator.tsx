@@ -11,6 +11,7 @@ import Panel from '../screens/Dashboard/PanelScreen/Panel';
 import Register from '../screens/Register/RegisterScreen';
 import InitialSecondPhase from '../screens/Initial/InitialSecondPhase/InitialSecondPhase';
 import AvailableBus from '../screens/Dashboard/Bus/AvailableBus';
+import Profile from '../screens/Dashboard/Profile/Profile';
 
 export type RootStackParamList = {
   Initial: undefined;
@@ -20,6 +21,7 @@ export type RootStackParamList = {
   Register: undefined;
   InitialSecondPhase: undefined;
   AvailableBus: undefined;
+  Profile: undefined
   // You can add other screens here later, e.g. Home: undefined
 };
 
@@ -40,6 +42,7 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen name="Register" component={Register} />
         <Stack.Screen name="InitialSecondPhase" component={InitialSecondPhase} />
         <Stack.Screen name="AvailableBus" component={AvailableBus}/>
+        <Stack.Screen name="Profile" component={Profile}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
