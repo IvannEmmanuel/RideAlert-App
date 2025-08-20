@@ -32,6 +32,10 @@ const HomeScreen = () => {
     longitudeDelta: 0.01,
   };
 
+  const handleSetting = () => {
+    navigation.navigate('Profile')
+  }
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning,';
@@ -207,7 +211,7 @@ const HomeScreen = () => {
             <TouchableOpacity>
               <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleSetting}>
               <Image source={require('../../../images/settings.png')} style={homeStyles.settings} />
             </TouchableOpacity>
           </View>
