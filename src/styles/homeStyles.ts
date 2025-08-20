@@ -25,6 +25,7 @@ const homeStyles = StyleSheet.create({
     backgroundColor: '#464646ff',
     justifyContent: 'center',
     alignItems: 'center',
+    right: 10
   },
   profileText: {
     color: '#fff',
@@ -36,7 +37,8 @@ const homeStyles = StyleSheet.create({
   },
   informationContainer: {
     flexDirection: 'column',
-    paddingHorizontal: 30
+    paddingHorizontal: 30,
+    right: 10
   },
   goodmorningText: {
     fontFamily: 'Montserrat-Regular',
