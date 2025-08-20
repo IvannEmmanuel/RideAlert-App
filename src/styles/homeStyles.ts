@@ -127,7 +127,32 @@ const homeStyles = StyleSheet.create({
     top: 15,
     fontSize: 22,
     fontFamily: 'Montserrat-Bold'
-  }
+  },
+  modalBackground: {
+    marginTop: '50%',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    left: height * 0.1,
+    borderRadius: 10,
+    width: width * 0.7,
+    maxHeight: height * 0.25,
+  },
+  notificationItem: {
+    paddingVertical: 10,
+    borderBottomColor: "#E0E0E0",
+    borderBottomWidth: 1,
+  },
+  closeButton: {
+    marginTop: 15,
+    backgroundColor: "#0500FE",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
 });
 
 export default homeStyles;

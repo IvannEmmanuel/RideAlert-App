@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Dimensions, TouchableOpacity, Image, Animated } from 'react-native';
+import { View, Text, Dimensions, TouchableOpacity, Image, Animated, FlatList } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { getToken, getUser } from '../../../utils/authStorage';
 import { getFCMToken } from '../../../utils/fcmStorage';
@@ -8,7 +8,9 @@ import { sendLocationToBackend } from './sendLocation';
 import Geolocation from '@react-native-community/geolocation';
 import homeStyles from '../../../styles/homeStyles';
 import { useNavigation } from '@react-navigation/native';
+import Modal from "react-native-modal";
 
+const { height, width } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const [token, setToken] = useState<string | null>(null);
@@ -22,6 +24,7 @@ const HomeScreen = () => {
   const mapRef = useRef<MapView>(null);
   const animation = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
+  const [modalVisible, setModalVisible] = useState(false);
 
   const DEFAULT_LATITUDE = 8.485255;
   const DEFAULT_LONGITUDE = 124.653642;
@@ -31,6 +34,52 @@ const HomeScreen = () => {
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   };
+
+  const notifications = [
+    { id: "1", message: "RideAlert - Your Bugo-Igpit bus is already 100 meters nearby you.", createdAt: new Date(Date.now() - 5 * 60000) }, // 5  mins ago
+    { id: "2", message: "RideAlert - Your Bugo-Igpit bus is already 100 meters nearby you.", createdAt: new Date(Date.now() - 2 * 60000) }, // 2 mins ago
+    { id: "3", message: "RideAlert - Your Bugo-Igpit bus is already 100 meters nearby you.", createdAt: new Date(Date.now() - 10 * 60000) }, // 10 mins ago
+  ];
+
+  const getTimeAgo = (createdAt) => {
+    const now = new Date();
+    const past = new Date(createdAt);
+    const diffInSeconds = Math.floor((now - past) / 1000);
+
+    if (diffInSeconds < 60) {
+      return "Just now";
+    }
+
+    if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} min${minutes > 1 ? "s" : ""} ago`;
+    }
+
+    if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+    }
+
+    if (diffInSeconds < 31536000) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} day${days > 1 ? "s" : ""} ago`;
+    }
+
+    const years = Math.floor(diffInSeconds / 31536000);
+    return `${years} year${years > 1 ? "s" : ""} ago`;
+  };
+
+
+
+  const isNewNotification = (createdAt) => {
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - new Date(createdAt)) / 60000);
+    return diffInMinutes >= 1 && diffInMinutes <= 5;
+  };
+
+  const handleNotificationPress = () => {
+    setModalVisible(true);
+  }
 
   const handleSetting = () => {
     navigation.navigate('Profile')
@@ -208,7 +257,7 @@ const HomeScreen = () => {
             <Text style={homeStyles.userText}>{user?.first_name}</Text>
           </View>
           <View style={homeStyles.settingContainer}>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleNotificationPress}>
               <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleSetting}>
@@ -260,8 +309,61 @@ const HomeScreen = () => {
           )}
         </Animated.View>
       </TouchableOpacity>
+      <Modal
+        isVisible={modalVisible}
+        coverScreen={false}
+        backdropOpacity={0}
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        onBackdropPress={() => setModalVisible(false)}
+        style={{ marginTop: height * 0.1, justifyContent: "flex-start" }}
+      >
+        <View style={homeStyles.modalContent}>
+          <Text
+            style={{
+              fontFamily: "Montserrat-Bold",
+              borderBottomColor: "#D8D8DF",
+              borderBottomWidth: 1,
+              paddingBottom: 8,
+              marginBottom: 10,
+              fontSize: 16,
+            }}
+          >
+            Notifications
+          </Text>
 
-    </View>
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={homeStyles.notificationItem}>
+                <Text style={{ fontFamily: "Montserrat-Regular" }}>
+                  {item.message}
+                </Text>
+
+                {isNewNotification(item.createdAt) && (
+                  <View style={{
+                    backgroundColor: "#FFEB15",
+                    width: 21,
+                    height: 14,
+                    borderRadius: 4,
+                    padding: height * 0.002,
+                    flexDirection: 'row',
+                  }}>
+                    <View style={{ flexDirection: 'row', width: width * 1 }}>
+                      <Text style={{ fontSize: 8, fontWeight: "Montserrat-Medium" }}>NEW</Text>
+                      <Text style={{ fontSize: 8, fontFamily: "Montserrat-Regular", left: 5 }}>
+                        {getTimeAgo(item.createdAt)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          />
+        </View>
+      </Modal >
+    </View >
   );
 };
 
