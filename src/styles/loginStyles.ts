@@ -11,7 +11,7 @@ const loginStyles = StyleSheet.create({
   loginContainer: {
     top: height * 0.1,
     justifyContent: "center",
-    width: height * 0.43,
+    width: height * 0.44,
   },
   loginText: {
     fontFamily: "Montserrat-Bold",
@@ -90,6 +90,12 @@ const loginStyles = StyleSheet.create({
     fontSize: 15,
     color: "#111B56",
   },
+  errorContainer: { 
+    alignSelf: "center", top: 5 
+  },
+  errorText: { 
+    color: "red", top: 5 
+  }
 });
 
 module.exports = { loginStyles };

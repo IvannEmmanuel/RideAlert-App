@@ -9,7 +9,7 @@ const homeStyles = StyleSheet.create({
   },
   topContainer: {
     flex: 0.125,
-    top: 10,
+    top: height * 0.01,
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -25,7 +25,7 @@ const homeStyles = StyleSheet.create({
     backgroundColor: '#464646ff',
     justifyContent: 'center',
     alignItems: 'center',
-    right: 10
+    right: width * 0.03
   },
   profileText: {
     color: '#fff',
@@ -37,13 +37,12 @@ const homeStyles = StyleSheet.create({
   },
   informationContainer: {
     flexDirection: 'column',
-    paddingHorizontal: 30,
-    right: 10
+    paddingHorizontal: width * 0.07,
+    right: width * 0.05
   },
   goodmorningText: {
     fontFamily: 'Montserrat-Regular',
-    fontSize: 18,
-    marginBottom: -10
+    fontSize: 18
   },
   userText: {
     fontFamily: 'Montserrat-Bold',
@@ -51,7 +50,7 @@ const homeStyles = StyleSheet.create({
   },
   settingContainer: {
     flexDirection: 'row',
-    gap: 20,
+    gap: width * 0.05,
     alignItems: 'center'
   },
   notification: {
@@ -100,31 +99,31 @@ const homeStyles = StyleSheet.create({
   },
   subMainSearchContainer: {
     backgroundColor: '#0500FE',
-    width: '90%',
-    height: 60,
+    width: width * 0.9,
+    height: height * 0.06,
     alignSelf: 'center',
     borderRadius: 50,
     justifyContent: 'center',
-    paddingHorizontal: 20
+    paddingHorizontal: width * 0.05
   },
   subOfMainSearchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between'
   },
   searchText: {
-    right: 80,
+    right: width * 0.2,
     fontSize: 24,
     fontFamily: 'Inter-Regular',
     color: '#FEFEFE'
   },
   stroke: {
     backgroundColor: '#000000',
-    width: 150,
-    height: 5,
+    width: width * 0.4,
+    height: height * 0.005,
     alignSelf: 'center',
   },
   rideText: {
-    top: 15,
+    top: height * 0.015,
     fontSize: 22,
     fontFamily: 'Montserrat-Bold'
   },
@@ -140,6 +139,15 @@ const homeStyles = StyleSheet.create({
     borderRadius: 10,
     width: width * 0.7,
     maxHeight: height * 0.25,
+  },
+  modalText: {
+    fontFamily: "Montserrat-Bold",
+    borderBottomColor: "#D8D8DF",
+    borderBottomWidth: 1,
+    paddingBottom: 8,
+    marginBottom: 10,
+    fontSize: 16,
+
   },
   notificationItem: {
     paddingVertical: 10,

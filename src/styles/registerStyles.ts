@@ -16,7 +16,7 @@ const registerStyles = StyleSheet.create({
         fontSize: 32,
     },
     signUpContainer: {
-        width: height * 0.43,
+        width: height * 0.44,
         marginTop: height * 0.1,
         marginBottom: height * 0.05,
         justifyContent: "center",

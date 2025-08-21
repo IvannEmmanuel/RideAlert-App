@@ -108,8 +108,8 @@ const LoginNew = () => {
           </TouchableOpacity>
         </View>
         {errorMessage ? (
-          <View style={{ alignSelf: "center", top: 5 }}>
-            <Text style={{ color: "red", top: 5 }}>{errorMessage}</Text>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         ) : null}
         <TouchableOpacity
