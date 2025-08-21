@@ -6,13 +6,13 @@ const availableBusStyle = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F7F6FB',
-        top: 20,
+        top: height * 0.02,
     },
     topContainer: {
         flexDirection: 'row',
-        left: 10,
+        left: width * 0.02,
         alignItems: 'center',
-        gap: 80,
+        gap: width * 0.2,
     },
     availableText: {
         fontFamily: 'Montserrat-Bold',
@@ -20,13 +20,13 @@ const availableBusStyle = StyleSheet.create({
     },
     filterContainer: {
         backgroundColor: '#0500FE',
-        width: 70,
-        height: 24,
-        left: 10,
+        width: width * 0.2,
+        height: height * 0.024,
+        left: width * 0.02,
         borderRadius: 20,
-        top: 30,
+        top: height * 0.03,
         justifyContent: 'center',
-        marginBottom: 50,
+        marginBottom: height * 0.05,
     },
     filterText: {
         fontFamily: 'Montserrat-Regular',
@@ -36,19 +36,17 @@ const availableBusStyle = StyleSheet.create({
     },
     bussesRow: {
         flexDirection: 'column',
-        gap: 10
+        gap: width * 0.01
     },
     busRow: {
         flexDirection: 'row',
         alignSelf: 'center',
-        paddingHorizontal: 10,
-        gap: 10,
     },
     busContainer: {
-        paddingHorizontal: 10,
-        paddingVertical: 10,
+        paddingHorizontal: width * 0.01,
+        paddingVertical: height * 0.02,
         backgroundColor: '#FEFEFE',
-        width: '95%',
+        width: width * 0.95,
         borderRadius: 10,
         justifyContent: 'center',
         elevation: 10
@@ -56,12 +54,13 @@ const availableBusStyle = StyleSheet.create({
     rowContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 5,
+        marginBottom: height * 0.005,
     },
     labelText: {
         fontFamily: 'Montserrat-Bold',
         fontSize: 14,
-        width: 120,
+        width: width * 0.320,
+        left: width * 0.02
     },
     valueText: {
         fontFamily: 'Montserrat-Regular',
@@ -69,12 +68,12 @@ const availableBusStyle = StyleSheet.create({
         flex: 1
     },
     notifyButton: {
-        right: 10,
+        right: width * 0.02,
         backgroundColor: '#1172FF',
         justifyContent: 'center',
         alignItems: 'center',
-        width: 87,
-        height: 26,
+        width: width * 0.2,
+        height: height * 0.026,
         borderRadius: 6
     },
     notifyText: {
@@ -88,8 +87,8 @@ const availableBusStyle = StyleSheet.create({
     },
     notifyContainer: {
         bottom: 0,
-        width: '100%',
-        height: 513,
+        width: width * 1,
+        height: 500,
         backgroundColor: '#F7F6FB',
         borderTopLeftRadius: 48,
         borderTopRightRadius: 48,
@@ -102,10 +101,10 @@ const availableBusStyle = StyleSheet.create({
         height: height * 0.3
     },
     closePic: {
-        top: 20,
-        left: 150,
-        width: 15,
-        height: 15
+        top: height * 0.02,
+        left: width * 0.380,
+        width: width * 0.03,
+        height: height * 0.03
     },
     rideText: {
         textAlign: 'center',
@@ -117,8 +116,8 @@ const availableBusStyle = StyleSheet.create({
         flexWrap: 'wrap',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 30,
+        paddingHorizontal: width * 0.03,
+        marginBottom: height * 0.04,
     },
     puvText: {
         textAlign: 'center',
