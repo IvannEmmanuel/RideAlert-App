@@ -4,19 +4,19 @@ const { width, height } = Dimensions.get('window');
 
 const profileStyles = StyleSheet.create({
   container: {
-    top: 20,
-    paddingVertical: 10,
-    width: '100%',
+    top: height * 0.02,
+    paddingVertical: width * 0.01,
+    width: width * 1,
     height: height * 0.25,
     borderBottomRightRadius: 45,
     borderBottomLeftRadius: 45,
-    paddingHorizontal: 20,
+    paddingHorizontal: width * 0.04,
   },
   mainProfileContainer: {
     flexDirection: 'row'
   },
   profileContainer: {
-    top: 10,
+    top: height * 0.01,
     height: 70,
     width: 70,
     borderRadius: 100,
@@ -34,7 +34,7 @@ const profileStyles = StyleSheet.create({
   },
   subTopHeader: {
     justifyContent: 'center',
-    paddingHorizontal: 20
+    paddingHorizontal: width * 0.04
   },
   fullNameText: {
     fontFamily: 'Montserrat-Bold',
@@ -43,7 +43,7 @@ const profileStyles = StyleSheet.create({
   emailText: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 14,
-    bottom: 4
+    bottom: height * 0.004
   },
   personalText: {
     fontFamily: 'Montserrat-Bold',
@@ -51,38 +51,48 @@ const profileStyles = StyleSheet.create({
   },
   informationContainer: {
     backgroundColor: "#FFFFFF",
-    width: 380,
-    height: 330,
+    width: width * 0.9,
+    height: height * 0.330,
     alignSelf: 'center',
     borderRadius: 10,
     flexDirection: 'column',
     justifyContent: 'center'
   },
   subFirstInformationContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: width * 0.040,
   },
   subInformationContainer: {
-    paddingHorizontal: 20,
-    marginTop: 20
+    paddingHorizontal: width * 0.040,
+    marginTop: height * 0.02
   },
   accountContainer: {
-    paddingHorizontal: 20, top: 20 
+    paddingHorizontal: width * 0.050, 
+    top: height * 0.02 
   },
   accountText: { 
-    fontFamily: 'Montserrat-Bold', fontSize: 16 
+    fontFamily: 'Montserrat-Bold', 
+    fontSize: 16 
   },
   logoutContainer: { 
     backgroundColor: '#f34747ff', 
-    width: '100%', 
-    height: 50, 
+    width: width * 0.9, 
+    height: height * 0.05, 
     borderRadius: 10, 
     justifyContent: 'center', 
-    marginTop: 20 
+    marginTop: height * 0.02 
   },
   logoutText: {
     textAlign: 'center', 
     color: '#FFFFFF', 
     fontSize: 18
+  },
+  textLabel: { 
+    fontFamily: 'Montserrat-Bold', 
+    fontSize: 16 
+  },
+  textValue: { 
+    fontFamily: 'Montserrat-Regular', 
+    fontSize: 16 
   }
 });
 

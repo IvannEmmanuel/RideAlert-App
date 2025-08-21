@@ -61,20 +61,20 @@ const Profile = () => {
       </LinearGradient>
       <View style={profileStyles.informationContainer}>
         <View style={profileStyles.subFirstInformationContainer}>
-          <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16 }}>Name</Text>
-          <Text style={{ fontFamily: 'Montserrat-Regular', fontSize: 16 }}>{user?.first_name}</Text>
+          <Text style={profileStyles.textLabel}>Name</Text>
+          <Text style={profileStyles.textValue}>{user?.first_name}</Text>
         </View>
         <View style={profileStyles.subInformationContainer}>
-          <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16 }}>Last Name</Text>
-          <Text style={{ fontFamily: 'Montserrat-Regular', fontSize: 16 }}>{user?.last_name}</Text>
+          <Text style={profileStyles.textLabel}>Last Name</Text>
+          <Text style={profileStyles.textValue}>{user?.last_name}</Text>
         </View>
         <View style={profileStyles.subInformationContainer}>
-          <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16 }}>Gender</Text>
-          <Text style={{ fontFamily: 'Montserrat-Regular', fontSize: 16 }}>{user?.gender}</Text>
+          <Text style={profileStyles.textLabel}>Gender</Text>
+          <Text style={profileStyles.textValue}>{user?.gender}</Text>
         </View>
         <View style={profileStyles.subInformationContainer}>
-          <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16 }}>City</Text>
-          <Text style={{ fontFamily: 'Montserrat-Regular', fontSize: 16 }}>{user?.address}</Text>
+          <Text style={profileStyles.textLabel}>City</Text>
+          <Text style={profileStyles.textValue}>{user?.address}</Text>
         </View>
       </View>
 
