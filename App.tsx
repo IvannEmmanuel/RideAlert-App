@@ -22,6 +22,7 @@ const App: React.FC = () => {
         channelDescription: "Notifications that pop up immediately",
         importance: 4, // Max importance for heads-up
         vibrate: true,
+        soundName: "default",
       },
       (created) => console.log(`🔔 Notification channel created: ${created}`)
     );
