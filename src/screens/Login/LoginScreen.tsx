@@ -13,6 +13,8 @@ import { BASE_URL } from '../../config/apiConfig';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
+import { getApp } from "@react-native-firebase/app";
+import { getMessaging } from "@react-native-firebase/messaging";
 
 const LoginNew = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -26,10 +28,33 @@ const LoginNew = () => {
     navigation.navigate("Register");
   }
 
+  const saveFcmToken = async (token: string, jwt: string, userId: string) => {
+    try {
+      const response = await fetch(`${BASE_URL}/users/fcm-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({
+          fcm_token: token,
+          user_id: userId,
+        }),
+      });
+
+      if (response.ok) {
+        console.log("✅ FCM token saved to backend");
+      } else {
+        console.error("❌ Failed to save FCM token:", await response.text());
+      }
+    } catch (err) {
+      console.error("❌ Error saving FCM token:", err);
+    }
+  };
+
   const handleLogin = async () => {
     setErrorMessage(""); // reset old error first
 
-    // simple frontend validation
     if (!email || !password) {
       setErrorMessage("Email and password are required.");
       return;
@@ -44,12 +69,24 @@ const LoginNew = () => {
       const access_token = response.data.access_token;
       const user = response.data.user;
 
-      // Store the token
       await AsyncStorage.setItem("access_token", access_token);
       await AsyncStorage.setItem("user", JSON.stringify(user));
 
       console.log("Login successful, token:", access_token);
       console.log("User data:", user);
+
+      // 🔥 Fetch and sync FCM token
+      try {
+        const messaging = getMessaging(getApp());
+        const fcmToken = await messaging.getToken();
+        console.log("FCM Token:", fcmToken);
+
+        if (fcmToken) {
+          await saveFcmToken(fcmToken, access_token, user.id);
+        }
+      } catch (err) {
+        console.error("Error fetching/saving FCM token:", err);
+      }
 
       navigation.navigate("Home"); //Panel
     } catch (error) {
@@ -59,7 +96,9 @@ const LoginNew = () => {
         if (error.response.status === 401) {
           setErrorMessage("Wrong email or password.");
         } else {
-          setErrorMessage(error.response.data.message || "Something went wrong. Please try again.");
+          setErrorMessage(
+            error.response.data.message || "Something went wrong. Please try again."
+          );
         }
       } else {
         setErrorMessage("Unable to connect. Check your internet connection.");
@@ -67,14 +106,12 @@ const LoginNew = () => {
     }
   };
 
-
-
   return (
     <View style={styles.container}>
       <View style={styles.loginContainer}>
         <Text style={styles.loginText}>Log in</Text>
         <Text style={styles.subLoginText}>
-          Access your account to enjoy a safe, 
+          Access your account to enjoy a safe,
           hassle-free ride with Orotsco Bus.
         </Text>
         <TextInput

@@ -5,7 +5,8 @@ const { height, width } = Dimensions.get('window');
 const homeStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F6FB'
+    backgroundColor: '#F7F6FB',
+    top: height * 0.02
   },
   topContainer: {
     flex: 0.125,
@@ -62,7 +63,7 @@ const homeStyles = StyleSheet.create({
     height: 25,
   },
   mapContainer: {
-    flex: 0.9,
+    flex: 1,
     overflow: 'hidden',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
@@ -72,15 +73,8 @@ const homeStyles = StyleSheet.create({
     width: '100%',
   },
   searchContainer: {
-    backgroundColor: '#0500FE',
-    width: 60,
-    height: 60,
-    position: 'absolute',
-    bottom: 30,
-    borderRadius: 100,
-    left: 20,
     justifyContent: 'center',
-    alignItems: 'center'
+    position: 'absolute'
   },
   subSearchContainer: {
     alignSelf: 'center',

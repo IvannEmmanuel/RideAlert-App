@@ -278,6 +278,9 @@ import Geolocation from '@react-native-community/geolocation';
 import homeStyles from '../../../styles/homeStyles';
 import { useNavigation } from '@react-navigation/native';
 import Modal from "react-native-modal";
+import { getMessaging } from '@react-native-firebase/messaging';
+import { getApp } from '@react-native-firebase/app';
+
 
 const { height, width } = Dimensions.get('window');
 
@@ -387,6 +390,20 @@ const HomeScreen = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchFCM = async () => {
+      try {
+        const messaging = getMessaging(getApp());
+        const token = await messaging.getToken();
+        console.log('FCM Token from Home:', token);
+      } catch (err) {
+        console.error('Error getting FCM token:', err);
+      }
+    };
+
+    setTimeout(fetchFCM, 2000); // Delay to allow Firebase to initialize
+  }, []);
+
   // Fetch token and user on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -397,6 +414,7 @@ const HomeScreen = () => {
     };
     fetchData();
   }, []);
+
 
   // Request permission and get initial location
   useEffect(() => {
@@ -467,11 +485,6 @@ const HomeScreen = () => {
     }
   }, [location]);
 
-  // Log FCM token (for debugging)
-  useEffect(() => {
-    const FCMtoken = getFCMToken();
-    console.log('FCM Token from Home:', FCMtoken);
-  }, []);
 
   const animatedStyle = {
     width: animation.interpolate({
@@ -513,119 +526,116 @@ const HomeScreen = () => {
   };
 
   return (
-    <View style={homeStyles.container}>
-      <View style={homeStyles.topContainer}>
-        <View style={homeStyles.subTopContainer}>
-          <View style={homeStyles.profileContainer}>
-            <Text style={homeStyles.profileText}>
-              {user?.first_name?.charAt(0)?.toUpperCase() || ''}
-            </Text>
-          </View>
-          <View style={homeStyles.informationContainer}>
-            <Text style={homeStyles.goodmorningText}>{getGreeting()}</Text>
-            <Text style={homeStyles.userText}>{user?.first_name}</Text>
-          </View>
-          <View style={homeStyles.settingContainer}>
-            <TouchableOpacity onPress={handleNotificationPress}>
-              <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSetting}>
-              <Image source={require('../../../images/settings.png')} style={homeStyles.settings} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-      <View style={homeStyles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={homeStyles.map}
-          initialRegion={DEFAULT_REGION}
-          showsUserLocation={true}
-        >
-          {location && (
-            <Marker
-              coordinate={location}
-              title="You are here"
-            />
-          )}
-        </MapView>
-      </View>
-      <TouchableOpacity
-        onPress={handleSearchPress}
-        disabled={isSearchExpanded}  // disable if already expanded
-      >
-        <Animated.View style={[homeStyles.searchContainer, animatedStyle]}>
-          {!isSearchExpanded ? (
-            <Image source={require('../../../images/search.png')} />
-          ) : (
-            <>
-              <View style={homeStyles.subSearchContainer}>
-                {/* stroke is now touchable to collapse */}
-                <TouchableOpacity onPress={handleCloseSearch}>
-                  <View style={homeStyles.stroke} />
-                </TouchableOpacity>
-
-                <Text style={homeStyles.rideText}>Looking for a ride?</Text>
-              </View>
-
-              <TouchableOpacity style={homeStyles.subMainSearchContainer} onPress={handleSearchBus}>
-                <View style={homeStyles.subOfMainSearchContainer}>
-                  <Image source={require('../../../images/search.png')} />
-                  <Text style={homeStyles.searchText}>Search Buses</Text>
-                </View>
+    <>
+      <View style={homeStyles.container}>
+        <View style={homeStyles.topContainer}>
+          <View style={homeStyles.subTopContainer}>
+            <View style={homeStyles.profileContainer}>
+              <Text style={homeStyles.profileText}>
+                {user?.first_name?.charAt(0)?.toUpperCase() || ''}
+              </Text>
+            </View>
+            <View style={homeStyles.informationContainer}>
+              <Text style={homeStyles.goodmorningText}>{getGreeting()}</Text>
+              <Text style={homeStyles.userText}>{user?.first_name}</Text>
+            </View>
+            <View style={homeStyles.settingContainer}>
+              <TouchableOpacity onPress={handleNotificationPress}>
+                <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
               </TouchableOpacity>
-            </>
-          )}
-        </Animated.View>
-      </TouchableOpacity>
-      <Modal
-        isVisible={modalVisible}
-        coverScreen={false}
-        backdropOpacity={0}
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        onBackdropPress={() => setModalVisible(false)}
-        style={{ marginTop: height * 0.1, justifyContent: "flex-start" }}
-      >
-        <View style={homeStyles.modalContent}>
-          <Text
-            style={homeStyles.modalText}
-          >
-            Notifications
-          </Text>
-
-          <FlatList
-            data={notifications}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={homeStyles.notificationItem}>
-                <Text style={{ fontFamily: "Montserrat-Regular" }}>
-                  {item.message}
-                </Text>
-
-                {isNewNotification(item.createdAt) && (
-                  <View style={{
-                    backgroundColor: "#FFEB15",
-                    width: 21,
-                    height: 14,
-                    borderRadius: 4,
-                    padding: height * 0.002,
-                    flexDirection: 'row',
-                  }}>
-                    <View style={{ flexDirection: 'row', width: width * 1 }}>
-                      <Text style={{ fontSize: 8, fontWeight: "Montserrat-Medium" }}>NEW</Text>
-                      <Text style={{ fontSize: 8, fontFamily: "Montserrat-Regular", left: width * 0.01 }}>
-                        {getTimeAgo(item.createdAt)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-            )}
-          />
+              <TouchableOpacity onPress={handleSetting}>
+                <Image source={require('../../../images/settings.png')} style={homeStyles.settings} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </Modal >
-    </View >
+        <View style={homeStyles.mapContainer}>
+          <MapView
+            ref={mapRef}
+            style={homeStyles.map}
+            initialRegion={DEFAULT_REGION}
+            showsUserLocation={true}
+          >
+            {location && (
+              <Marker
+                coordinate={location}
+                title="You are here"
+              />
+            )}
+          </MapView>
+        </View>
+        <Modal
+          isVisible={modalVisible}
+          coverScreen={false}
+          backdropOpacity={0}
+          animationIn="fadeIn"
+          animationOut="fadeOut"
+          onBackdropPress={() => setModalVisible(false)}
+          style={{ marginTop: height * 0.1, justifyContent: "flex-start" }}
+        >
+          <View style={homeStyles.modalContent}>
+            <Text
+              style={homeStyles.modalText}
+            >
+              Notifications
+            </Text>
+
+            <FlatList
+              data={notifications}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View style={homeStyles.notificationItem}>
+                  <Text style={{ fontFamily: "Montserrat-Regular" }}>
+                    {item.message}
+                  </Text>
+
+                  {isNewNotification(item.createdAt) && (
+                    <View style={{
+                      backgroundColor: "#FFEB15",
+                      width: 21,
+                      height: 14,
+                      borderRadius: 4,
+                      padding: height * 0.002,
+                      flexDirection: 'row',
+                    }}>
+                      <View style={{ flexDirection: 'row', width: width * 1 }}>
+                        <Text style={{ fontSize: 8, fontWeight: "Montserrat-Medium" }}>NEW</Text>
+                        <Text style={{ fontSize: 8, fontFamily: "Montserrat-Regular", left: width * 0.01 }}>
+                          {getTimeAgo(item.createdAt)}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+            />
+          </View>
+        </Modal >
+      </View >
+      <Animated.View style={[homeStyles.searchContainer, animatedStyle]}>
+        {!isSearchExpanded ? (
+          <TouchableOpacity onPress={handleSearchPress} style={{ justifyContent: "center", flex: 1 }}>
+            <Image source={require('../../../images/search.png')} style={{ alignSelf: 'center' }} />
+          </TouchableOpacity>
+        ) : (
+          <>
+            <View style={homeStyles.subSearchContainer}>
+              <TouchableOpacity onPress={handleCloseSearch}>
+                <View style={homeStyles.stroke} />
+              </TouchableOpacity>
+              <Text style={homeStyles.rideText}>Looking for a ride?</Text>
+            </View>
+
+            <TouchableOpacity style={homeStyles.subMainSearchContainer} onPress={handleSearchBus}>
+              <View style={homeStyles.subOfMainSearchContainer}>
+                <Image source={require('../../../images/search.png')} />
+                <Text style={homeStyles.searchText}>Search Buses</Text>
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
+      </Animated.View>
+    </>
   );
 };
 

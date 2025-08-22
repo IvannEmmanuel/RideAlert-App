@@ -4,7 +4,7 @@ const { width, height } = Dimensions.get('window');
 
 const profileStyles = StyleSheet.create({
   container: {
-    top: height * 0.02,
+    top: height * 0.04,
     paddingVertical: width * 0.01,
     width: width * 1,
     height: height * 0.25,
@@ -47,7 +47,8 @@ const profileStyles = StyleSheet.create({
   },
   personalText: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 18
+    fontSize: 18,
+    bottom: height * 0.03
   },
   informationContainer: {
     backgroundColor: "#FFFFFF",

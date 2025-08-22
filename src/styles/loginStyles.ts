@@ -42,6 +42,7 @@ const loginStyles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     width: "100%",
+    color: '#000'
   },
   emojiContainer: {
     position: "absolute",

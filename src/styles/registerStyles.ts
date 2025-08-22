@@ -86,6 +86,7 @@ const registerStyles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 1,
         width: "100%",
+        color: "#000"
     },
     confirmPasswordInput: {
         height: height * 0.07,
@@ -96,6 +97,7 @@ const registerStyles = StyleSheet.create({
         borderWidth: 1,
         marginBottom: 10,
         width: "100%",
+        color: "#000"
     },
     inputError: {
         borderColor: "red",
