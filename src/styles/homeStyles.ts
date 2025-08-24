@@ -148,6 +148,25 @@ const homeStyles = StyleSheet.create({
     borderBottomColor: "#E0E0E0",
     borderBottomWidth: 1,
   },
+  subNotificationItem: {
+    backgroundColor: "#FFEB15",
+    width: width * 0.06,
+    paddingHorizontal: width * 0.004,
+    height: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center'
+  },
+  newText: {
+    fontSize: 8,
+    fontFamily: "Montserrat-Bold"
+  },
+  timeText: {
+    fontSize: 8, 
+    fontFamily: "Montserrat-Regular", 
+    width: width * 0.2, 
+    paddingHorizontal: 4
+  },
   closeButton: {
     marginTop: 15,
     backgroundColor: "#0500FE",

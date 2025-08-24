@@ -280,7 +280,7 @@ import { useNavigation } from '@react-navigation/native';
 import Modal from "react-native-modal";
 import { getMessaging } from '@react-native-firebase/messaging';
 import { getApp } from '@react-native-firebase/app';
-
+import axios from 'axios';
 
 const { height, width } = Dimensions.get('window');
 
@@ -297,6 +297,7 @@ const HomeScreen = () => {
   const animation = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
   const DEFAULT_LATITUDE = 8.485255;
   const DEFAULT_LONGITUDE = 124.653642;
@@ -307,11 +308,31 @@ const HomeScreen = () => {
     longitudeDelta: 0.01,
   };
 
-  const notifications = [
-    { id: "1", message: "RideAlert - Your Bugo-Igpit bus is already 100 meters nearby you.", createdAt: new Date(Date.now() - 5 * 60000) }, // 5  mins ago
-    { id: "2", message: "RideAlert - Your Bugo-Igpit bus is already 100 meters nearby you.", createdAt: new Date(Date.now() - 2 * 60000) }, // 2 mins ago
-    { id: "3", message: "RideAlert - Your Bugo-Igpit bus is already 100 meters nearby you.", createdAt: new Date(Date.now() - 10 * 60000) }, // 10 mins ago
-  ];
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await axios.get(`http://192.168.1.7:8000/notifications/user/${user.id}`);
+        const formatted = response.data.map((item) => ({
+          id: item.id,
+          message: item.message,
+          createdAt: new Date(item.createdAt)
+        }));
+        setNotifications(formatted);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+
+    fetchNotifications();
+  }, [user]);
+
+  const formatTimeOnly = (date) => {
+    const d = new Date(date);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
 
   const getTimeAgo = (createdAt) => {
     const now = new Date();
@@ -586,26 +607,14 @@ const HomeScreen = () => {
               renderItem={({ item }) => (
                 <View style={homeStyles.notificationItem}>
                   <Text style={{ fontFamily: "Montserrat-Regular" }}>
-                    {item.message}
-                  </Text>
-
-                  {isNewNotification(item.createdAt) && (
-                    <View style={{
-                      backgroundColor: "#FFEB15",
-                      width: 21,
-                      height: 14,
-                      borderRadius: 4,
-                      padding: height * 0.002,
-                      flexDirection: 'row',
-                    }}>
-                      <View style={{ flexDirection: 'row', width: width * 1 }}>
-                        <Text style={{ fontSize: 8, fontWeight: "Montserrat-Medium" }}>NEW</Text>
-                        <Text style={{ fontSize: 8, fontFamily: "Montserrat-Regular", left: width * 0.01 }}>
-                          {getTimeAgo(item.createdAt)}
-                        </Text>
-                      </View>
+                    {item.message} {"\n"}
+                    <View style={homeStyles.subNotificationItem}>
+                      <Text style={homeStyles.newText}>NEW</Text>
+                      <Text style={homeStyles.timeText}>
+                        {formatTimeOnly(item.createdAt)}
+                      </Text>
                     </View>
-                  )}
+                  </Text>
                 </View>
               )}
             />
