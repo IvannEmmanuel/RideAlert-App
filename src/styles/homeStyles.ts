@@ -150,8 +150,8 @@ const homeStyles = StyleSheet.create({
   },
   subNotificationItem: {
     backgroundColor: "#FFEB15",
-    width: width * 0.06,
-    paddingHorizontal: width * 0.004,
+    width: width * 0.08,
+    paddingHorizontal: width * 0.012,
     height: 14,
     flexDirection: 'row',
     alignItems: 'center',
