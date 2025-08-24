@@ -1,3 +1,5 @@
+// Updated Home.tsx - Only showing the relevant changes
+
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Image, Animated, Dimensions } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
@@ -7,7 +9,8 @@ import { getToken, getUser } from '../../../utils/authStorage';
 import { getFCMToken } from '../../../utils/fcmStorage';
 import { requestLocationPermission, getCurrentLocation } from './useLocation';
 import { sendLocationToBackend } from './sendLocation';
-import { useNotifications } from '../../../hooks/useNotifications';
+// Remove this import since we're not using it anymore
+// import { useNotifications } from '../../../hooks/useNotifications';
 import { NotificationModal } from '../../../components/NotificationModal';
 import homeStyles from '../../../styles/homeStyles';
 
@@ -31,7 +34,8 @@ const HomeScreen = () => {
   const animation = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
 
-  const notifications = useNotifications(user?.id);
+  // Remove this line since we're not using the hook anymore
+  // const notifications = useNotifications(user?.id);
 
   // Fetch token and user
   useEffect(() => {
@@ -44,7 +48,7 @@ const HomeScreen = () => {
     fetchData();
   }, []);
 
-  // // Fetch FCM token
+    // // Fetch FCM token
   // useEffect(() => {
   //   const fetchFCM = async () => {
   //     const fcm = await getFCMToken();
@@ -185,10 +189,11 @@ const HomeScreen = () => {
           </MapView>
         </View>
 
+        {/* Updated NotificationModal to pass userId instead of notifications array */}
         <NotificationModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
-          notifications={notifications}
+          userId={user?.id}
         />
       </View>
 
