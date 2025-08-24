@@ -55,8 +55,8 @@ const homeStyles = StyleSheet.create({
     alignItems: 'center'
   },
   notification: {
-    width: 34,
-    height: 25,
+    width: 30,
+    height: 30,
   },
   settings: {
     width: 25,
