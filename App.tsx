@@ -27,13 +27,19 @@ const App: React.FC = () => {
       (created) => console.log(`🔔 Notification channel created: ${created}`)
     );
 
-    // 📲 Handle foreground messages
+    // 📲 Handle foreground messages with native notification
     const unsubscribe = messaging.onMessage(async (remoteMessage) => {
       console.log("📲 Foreground message received:", remoteMessage);
-      Alert.alert(
-        remoteMessage.notification?.title || "Notification",
-        remoteMessage.notification?.body || "You have a new message"
-      );
+
+      PushNotification.localNotification({
+        channelId: "high_priority_channel",
+        title: remoteMessage.notification?.title || "RideAlert",
+        message: remoteMessage.notification?.body || "You have a new alert",
+        playSound: true,
+        soundName: "default",
+        importance: "high",
+        vibrate: true,
+      });
     });
 
     // 🔐 Request notification permissions
