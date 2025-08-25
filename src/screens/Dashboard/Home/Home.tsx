@@ -211,10 +211,10 @@
 // export default HomeScreen;
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, Dimensions, Platform, PermissionsAndroid } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated, Dimensions, PermissionsAndroid } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import Geolocation from 'react-native-geolocation-service';
 import { useNavigation } from '@react-navigation/native';
+import RNGetLocation from 'react-native-get-location';
 import { getToken, getUser } from '../../../utils/authStorage';
 import { sendLocationToBackend } from './sendLocation';
 import { NotificationModal } from '../../../components/NotificationModal';
@@ -229,27 +229,141 @@ const DEFAULT_REGION = {
   longitudeDelta: 0.01,
 };
 
-// Request location permission (Android)
-const requestLocationPermission = async () => {
-  if (Platform.OS === 'android') {
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-    );
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
-  }
-  return true;
-};
-
 const HomeScreen = () => {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<any>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const mapRef = useRef<MapView>(null);
   const animation = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
+  const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isLocationRequestInProgress = useRef(false);
+  const lastLocationTimeRef = useRef<number>(0);
+  const lastSuccessfulLocationRef = useRef<any>(null);
+
+  // Request location permission
+  const requestLocationPermission = async () => {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: "Location Permission",
+          message: "This app needs access to your location to track your position",
+          buttonNeutral: "Ask Me Later",
+          buttonNegative: "Cancel",
+          buttonPositive: "OK"
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.error('Permission error:', err);
+      return false;
+    }
+  };
+
+  // Get current location using react-native-get-location
+  const getCurrentLocation = async () => {
+    // Prevent multiple simultaneous location requests
+    if (isLocationRequestInProgress.current) {
+      console.log('Location request already in progress, skipping...');
+      return;
+    }
+
+    // Throttle location requests to prevent too frequent calls
+    const now = Date.now();
+    if (now - lastLocationTimeRef.current < 4000) { // 4 second throttle
+      console.log('Location request throttled');
+      return;
+    }
+
+    isLocationRequestInProgress.current = true;
+    lastLocationTimeRef.current = now;
+
+    try {
+      const location = await RNGetLocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 8000, // Increased timeout to 8 seconds
+        maximumAge: 30000, // Accept cached locations up to 30 seconds old
+      });
+
+      const newLocation = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+
+      setCurrentLocation(newLocation);
+      setLocationError(null);
+      lastSuccessfulLocationRef.current = newLocation;
+
+      // Send to backend if token exists
+      if (token) {
+        sendLocationToBackend(location.latitude, location.longitude, token);
+      }
+
+      // Center map on location
+      mapRef.current?.animateToRegion(newLocation, 1000);
+
+    } catch (error: any) {
+      // Only log errors that aren't cancellation-related or timeouts
+      if (error.code !== 'CANCELLED' &&
+        error.message !== 'Location cancelled by another request' &&
+        error.code !== 'TIMEOUT') {
+        console.error('Error getting location:', error);
+
+        if (error.code === 'UNAVAILABLE') {
+          setLocationError('Location services are not available');
+        } else if (error.code === 'UNAUTHORIZED') {
+          setLocationError('Location permission denied');
+        } else {
+          setLocationError('Failed to get location');
+        }
+      } else if (error.code === 'TIMEOUT') {
+        // Timeout is expected, not a real error
+        console.log('Location request timed out (will retry)');
+
+        // Use last known location if available
+        if (lastSuccessfulLocationRef.current) {
+          setCurrentLocation(lastSuccessfulLocationRef.current);
+          if (token) {
+            sendLocationToBackend(
+              lastSuccessfulLocationRef.current.latitude,
+              lastSuccessfulLocationRef.current.longitude,
+              token
+            );
+          }
+        }
+      } else {
+        // This is expected behavior, no need to log as error
+        console.log('Location request cancelled (expected behavior)');
+      }
+    } finally {
+      isLocationRequestInProgress.current = false;
+    }
+  };
+
+  // Start location updates every 5 seconds
+  const startLocationUpdates = () => {
+    // Get initial location immediately
+    getCurrentLocation();
+
+    // Then set up interval for every 5 seconds
+    locationIntervalRef.current = setInterval(getCurrentLocation, 5000);
+  };
+
+  // Stop location updates
+  const stopLocationUpdates = () => {
+    if (locationIntervalRef.current) {
+      clearInterval(locationIntervalRef.current);
+      locationIntervalRef.current = null;
+    }
+    isLocationRequestInProgress.current = false;
+  };
 
   // Fetch token and user
   useEffect(() => {
@@ -262,67 +376,22 @@ const HomeScreen = () => {
     fetchData();
   }, []);
 
-  // Handle location logic
+  // Setup location tracking
   useEffect(() => {
-    const initLocation = async () => {
-      const granted = await requestLocationPermission();
-      if (!granted || !token) return;
-
-      // Get initial location (fast if cached)
-      Geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setLocation({ latitude, longitude });
-          sendLocationToBackend(latitude, longitude, token);
-        },
-        (error) => {
-          console.error('Error getting current position:', error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 10000,
-        }
-      );
-
-      // Watch for continuous updates
-      const watchId = Geolocation.watchPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setLocation({ latitude, longitude });
-          sendLocationToBackend(latitude, longitude, token);
-        },
-        (error) => {
-          console.error('Error watching position:', error);
-        },
-        {
-          enableHighAccuracy: true,
-          distanceFilter: 30,
-          interval: 5000,
-          fastestInterval: 2000,
-        }
-      );
-
-      return () => Geolocation.clearWatch(watchId);
+    const initLocationTracking = async () => {
+      const hasPermission = await requestLocationPermission();
+      if (hasPermission) {
+        startLocationUpdates();
+      } else {
+        setLocationError('Location permission denied');
+      }
     };
 
-    initLocation();
-  }, [token]);
+    initLocationTracking();
 
-  // Animate map to user location
-  useEffect(() => {
-    if (location && mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        1000
-      );
-    }
-  }, [location]);
+    // Cleanup on component unmount
+    return () => stopLocationUpdates();
+  }, [token]);
 
   const handleNotificationPress = () => setModalVisible(true);
   const handleSetting = () => navigation.navigate('Profile');
@@ -396,9 +465,23 @@ const HomeScreen = () => {
             style={homeStyles.map}
             initialRegion={DEFAULT_REGION}
             showsUserLocation={true}
+            followsUserLocation={true}
           >
-            {location && <Marker coordinate={location} title="You are here" />}
+            {currentLocation && (
+              <Marker
+                coordinate={currentLocation}
+                title="You are here"
+                description="Your current location"
+                pinColor="blue"
+              />
+            )}
           </MapView>
+
+          {locationError && (
+            <View style={homeStyles.errorContainer}>
+              <Text style={homeStyles.errorText}>{locationError}</Text>
+            </View>
+          )}
         </View>
 
         <NotificationModal
