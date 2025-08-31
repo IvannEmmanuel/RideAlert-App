@@ -1,38 +1,87 @@
 import { Image, Text, TouchableOpacity, View, Animated, Dimensions } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import availableBusStyle from '../../../styles/availableBus';
 import { useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
+import { getUser } from '../../../utils/authStorage'; // assuming you store fleet_id here
 
-const {height} = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 const AvailableBus = () => {
     const navigation = useNavigation();
     const [isNotifyVisible, setIsNotifyVisible] = useState(false);
     const [selectedRoute, setSelectedRoute] = useState('');
+    const [buses, setBuses] = useState<any[]>([]);
     const slideAnim = useState(new Animated.Value(height))[0];
+    const wsRef = useRef<WebSocket | null>(null);
 
     const onPressBack = () => {
         navigation.navigate('Home');
     };
 
-    const showNotification = (route) => {
+    const showNotification = (route: string) => {
         setSelectedRoute(route);
         setIsNotifyVisible(true);
         Animated.timing(slideAnim, {
-            toValue: 0, // Slide up to visible position
-            duration: 300, // Animation duration in ms
-            useNativeDriver: true, // Better performance
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
         }).start();
     };
 
     const hideNotification = () => {
         Animated.timing(slideAnim, {
-            toValue: height, // Slide back down off-screen
+            toValue: height,
             duration: 300,
             useNativeDriver: true,
-        }).start(() => setIsNotifyVisible(false)); // Hide after animation
+        }).start(() => setIsNotifyVisible(false));
     };
+
+    useEffect(() => {
+        const connectWS = async () => {
+            const user = await getUser();
+            const fleetId = user?.fleet_id; // make sure this exists
+
+            if (!fleetId) {
+                console.warn('No fleet_id found for user');
+                return;
+            }
+
+            // Adjust IP to your backend's LAN IP
+            const wsUrl = `ws://192.168.1.7:8000/ws/vehicles/all/${fleetId}`;
+            const ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                console.log('Connected to vehicle WebSocket');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    setBuses(data); // data is the array of vehicles from backend
+                } catch (err) {
+                    console.error('Error parsing WS message', err);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error', error);
+            };
+
+            ws.onclose = () => {
+                console.log('Vehicle WebSocket closed');
+            };
+        };
+
+        connectWS();
+
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        };
+    }, []);
 
     return (
         <>
@@ -52,11 +101,8 @@ const AvailableBus = () => {
 
                 {/* Bus Cards Row */}
                 <View style={availableBusStyle.bussesRow}>
-                    {[ // Example data for multiple bus cards
-                        { route: 'Bugo-Igpit', status: 'Available', eta: '3 minutes' },
-                        { route: 'Bugo-Igpit', status: 'Available', eta: '3 minutes' },
-                    ].map((bus, index) => (
-                        <View key={index} style={availableBusStyle.busRow}>
+                    {buses.map((bus, index) => (
+                        <View key={bus.id || index} style={availableBusStyle.busRow}>
                             <View style={availableBusStyle.busContainer}>
                                 <View style={availableBusStyle.rowContainer}>
                                     <Text style={availableBusStyle.labelText}>Route</Text>
@@ -64,7 +110,10 @@ const AvailableBus = () => {
                                 </View>
                                 <View style={availableBusStyle.rowContainer}>
                                     <Text style={availableBusStyle.labelText}>Status</Text>
-                                    <Text style={[availableBusStyle.valueText, availableBusStyle.statusColor]}>
+                                    <Text style={[
+                                        availableBusStyle.valueText,
+                                        availableBusStyle.statusColor
+                                    ]}>
                                         {bus.status}
                                     </Text>
                                     <TouchableOpacity
@@ -75,14 +124,19 @@ const AvailableBus = () => {
                                     </TouchableOpacity>
                                 </View>
                                 <View style={availableBusStyle.rowContainer}>
-                                    <Text style={availableBusStyle.labelText}>ETA</Text>
-                                    <Text style={availableBusStyle.valueText}>{bus.eta}</Text>
+                                    <Text style={availableBusStyle.labelText}>Available Seats</Text>
+                                    <Text style={availableBusStyle.valueText}>{bus.available_seats}</Text>
+                                </View>
+                                <View style={availableBusStyle.rowContainer}>
+                                    <Text style={availableBusStyle.labelText}>Plate</Text>
+                                    <Text style={availableBusStyle.valueText}>{bus.plate}</Text>
                                 </View>
                             </View>
                         </View>
                     ))}
                 </View>
             </View>
+
             {isNotifyVisible && (
                 <Animated.View
                     style={[
