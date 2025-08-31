@@ -9,6 +9,8 @@ import LinearGradient from 'react-native-linear-gradient'; // 👈 import
 import { removeToken, getUser } from '../../../utils/authStorage';
 import { useNavigation } from '@react-navigation/native';
 import profileStyles from '../../../styles/profileStyles';
+import { getMessaging } from '@react-native-firebase/messaging';
+import { api } from '../../../utils/api';
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -29,8 +31,23 @@ const Profile = () => {
   }, []);
 
   const handleLogout = async () => {
-    await removeToken();
-    navigation.navigate('InitialSecondPhase');
+    try {
+      const currentUser = await getUser();
+
+      // Optional: also delete the token from FCM so a new one is generated next login
+      await getMessaging().deleteToken();
+
+      // Tell backend to clear token
+      await api.delete(`/users/fcm-token?user_id=${currentUser.id}`);
+
+      // Remove local auth token
+      await removeToken();
+
+      // Navigate away
+      navigation.navigate('InitialSecondPhase');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
   return (
