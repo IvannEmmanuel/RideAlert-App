@@ -18,6 +18,7 @@ import {
 import React, { useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import axios from 'axios';
+import { Picker } from '@react-native-picker/picker';
 
 const Register = () => {
   const navigation = useNavigation();
@@ -37,13 +38,15 @@ const Register = () => {
   const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState('');
 
   const loginPress = () => {
     console.log("Navigating to Login screen");
     navigation.navigate("Login");
   };
 
-  const register = async (firstName, lastName, email, password, address, gender) => {
+  const register = async (firstName, lastName, email, password, address, gender, fleet_id) => {
     try {
       const response = await axios.post(`${BASE_URL}/users/register`, {
         first_name: firstName,
@@ -52,6 +55,7 @@ const Register = () => {
         password,
         address,
         gender,
+        fleet_id
       });
       console.log("API Response:", response.status, response.data);
       return response;
@@ -108,7 +112,7 @@ const Register = () => {
     }
 
     try {
-      const response = await register(firstName, lastName, email, password, address, gender);
+      const response = await register(firstName, lastName, email, password, address, gender, selectedCompany);
       if (response.status >= 200 && response.status < 300) {
         console.log("Registration successful, showing success modal");
         setShowSuccessModal(true);
@@ -125,6 +129,19 @@ const Register = () => {
       );
     }
   };
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/fleets/all`);
+        setCompanies(response.data);
+      } catch (error) {
+        console.error("Error fetching companies:", error.message);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
 
   useEffect(() => {
     if (showError) {
@@ -208,6 +225,33 @@ const Register = () => {
                 onChangeText={setLastName}
                 placeholderTextColor="#888" // Set a visible color
               />
+              <View style={{
+                borderWidth: 1,
+                borderColor: '#000',
+                borderRadius: 10,
+                overflow: 'hidden',
+                marginBottom: 20,
+              }}>
+                <Picker
+                  selectedValue={selectedCompany}
+                  onValueChange={(itemValue) => setSelectedCompany(itemValue)}
+                  style={{
+                    height: 50,
+                    width: '100%',
+                    color: '#000',
+                    backgroundColor: '#fff'
+                  }}
+                >
+                  <Picker.Item label="-- Choose a company --" value="" />
+                  {companies.map((company) => (
+                    <Picker.Item
+                      key={company.id}
+                      label={company.company_name}
+                      value={company.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
               <TextInput
                 placeholder="Address*"
                 style={styles.addressInput}

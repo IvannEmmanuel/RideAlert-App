@@ -216,7 +216,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import RNGetLocation from 'react-native-get-location';
 import { getToken, getUser } from '../../../utils/authStorage';
-import { sendLocationToBackend } from './sendLocation';
+// import { sendLocationToBackend } from './sendLocation';
 import { NotificationModal } from '../../../components/NotificationModal';
 import homeStyles from '../../../styles/homeStyles';
 
@@ -301,10 +301,10 @@ const HomeScreen = () => {
       setLocationError(null);
       lastSuccessfulLocationRef.current = newLocation;
 
-      // Send to backend if token exists
-      if (token) {
-        sendLocationToBackend(location.latitude, location.longitude, token);
-      }
+      // // Send to backend if token exists
+      // if (token) {
+      //   sendLocationToBackend(location.latitude, location.longitude, token);
+      // }
 
       // Center map on location
       mapRef.current?.animateToRegion(newLocation, 1000);
@@ -330,13 +330,13 @@ const HomeScreen = () => {
         // Use last known location if available
         if (lastSuccessfulLocationRef.current) {
           setCurrentLocation(lastSuccessfulLocationRef.current);
-          if (token) {
-            sendLocationToBackend(
-              lastSuccessfulLocationRef.current.latitude,
-              lastSuccessfulLocationRef.current.longitude,
-              token
-            );
-          }
+          // if (token) {
+          //   sendLocationToBackend(
+          //     lastSuccessfulLocationRef.current.latitude,
+          //     lastSuccessfulLocationRef.current.longitude,
+          //     token
+          //   );
+          // }
         }
       } else {
         // This is expected behavior, no need to log as error
@@ -476,12 +476,6 @@ const HomeScreen = () => {
               />
             )}
           </MapView>
-
-          {locationError && (
-            <View style={homeStyles.errorContainer}>
-              <Text style={homeStyles.errorText}>{locationError}</Text>
-            </View>
-          )}
         </View>
 
         <NotificationModal
