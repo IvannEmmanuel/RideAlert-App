@@ -92,7 +92,7 @@ const homeStyles = StyleSheet.create({
     justifyContent: 'center'
   },
   subMainSearchContainer: {
-    backgroundColor: '#0500FE',
+    backgroundColor: "#111B56D4",
     width: width * 0.9,
     height: height * 0.06,
     alignSelf: 'center',
@@ -169,7 +169,7 @@ const homeStyles = StyleSheet.create({
   },
   closeButton: {
     marginTop: 15,
-    backgroundColor: "#0500FE",
+    backgroundColor: "#111B56D4",
     padding: 10,
     borderRadius: 8,
     alignItems: "center",

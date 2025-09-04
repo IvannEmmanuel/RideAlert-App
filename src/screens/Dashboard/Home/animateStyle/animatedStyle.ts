@@ -30,7 +30,7 @@ export const getAnimatedStyle = (animation: Animated.Value) => ({
   }),
   backgroundColor: animation.interpolate({
     inputRange: [0, 1],
-    outputRange: ["#0500FE", "#F7F6FB"],
+    outputRange: ["#223392d4", "#F7F6FB"],
   }),
   bottom: animation.interpolate({
     inputRange: [0, 1],

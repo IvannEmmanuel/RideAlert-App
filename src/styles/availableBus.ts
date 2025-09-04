@@ -19,7 +19,7 @@ const availableBusStyle = StyleSheet.create({
         fontSize: 20,
     },
     filterContainer: {
-        backgroundColor: '#0500FE',
+        backgroundColor: '#111B56D4',
         width: width * 0.2,
         height: height * 0.024,
         left: width * 0.02,
@@ -69,11 +69,11 @@ const availableBusStyle = StyleSheet.create({
     },
     notifyButton: {
         right: width * 0.02,
-        backgroundColor: '#1172FF',
+        backgroundColor: '#111B56D4',
         justifyContent: 'center',
         alignItems: 'center',
         width: width * 0.2,
-        height: height * 0.026,
+        height: height * 0.05,
         borderRadius: 6
     },
     notifyText: {
