@@ -212,7 +212,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Image, Animated } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getToken, getUser } from '../../../utils/authStorage';
 import { NotificationModal } from '../../../components/NotificationModal';
@@ -230,19 +230,94 @@ interface User {
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const bus = route.params?.bus;
+  const initialBus = route.params?.bus;
   const [buses, setBuses] = useState<any[]>([]);
+  const [selectedBus, setSelectedBus] = useState(initialBus || null);
+  const [currentBusLocation, setCurrentBusLocation] = useState(null);
 
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [routeCoordinates, setRouteCoordinates] = useState<any[]>([]);
 
   const mapRef = useRef<MapView>(null);
   const animation = useRef(new Animated.Value(0)).current;
 
   const { location, error } = useLocation();
 
+  // OSRM Route fetching function
+  const getRouteCoordinates = async (start: any, end: any) => {
+    try {
+      console.log('Fetching route from:', start, 'to:', end);
+
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('OSRM Response:', data);
+
+      if (data.routes && data.routes.length > 0) {
+        const coordinates = data.routes[0].geometry.coordinates.map((coord: number[]) => ({
+          latitude: coord[1],  // OSRM returns [lng, lat], we need [lat, lng]
+          longitude: coord[0]
+        }));
+        console.log('Route coordinates count:', coordinates.length);
+        return coordinates;
+      } else {
+        console.log('No routes found');
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching route:', error);
+      // Fallback to straight line if routing fails
+      return [
+        { latitude: start.latitude, longitude: start.longitude },
+        { latitude: end.latitude, longitude: end.longitude }
+      ];
+    }
+  };
+
+  // Update selected bus when route params change
+  useEffect(() => {
+    if (initialBus) {
+      setSelectedBus(initialBus);
+      setCurrentBusLocation(initialBus.location);
+    }
+  }, [initialBus]);
+
+  // Update current bus location when buses array changes
+  useEffect(() => {
+    if (selectedBus && buses.length > 0) {
+      const updatedBus = buses.find(b => b.id === selectedBus.id);
+      if (updatedBus && updatedBus.location) {
+        console.log('Bus location updated via WebSocket:', updatedBus.location);
+        setCurrentBusLocation(updatedBus.location);
+      }
+    }
+  }, [buses, selectedBus?.id]);
+
+  // Fetch route when current bus location or user location changes
+  useEffect(() => {
+    const fetchRoute = async () => {
+      if (currentBusLocation && location) {
+        console.log('Fetching route for bus location:', currentBusLocation);
+        const coords = await getRouteCoordinates(location, currentBusLocation);
+        setRouteCoordinates(coords);
+      } else {
+        setRouteCoordinates([]);
+      }
+    };
+
+    fetchRoute();
+  }, [currentBusLocation?.latitude, currentBusLocation?.longitude, location?.latitude, location?.longitude]);
+
+  // WebSocket connection for real-time bus updates
   useEffect(() => {
     if (!user?.fleet_id) return;
 
@@ -255,7 +330,7 @@ const HomeScreen: React.FC = () => {
       try {
         const data = JSON.parse(event.data);
         console.log("Available vehicles:", data);
-        setBuses(data); // keep updating buses in state
+        setBuses(data); // This will trigger the useEffect that updates currentBusLocation
       } catch (err) {
         console.error("WS parse error:", err);
       }
@@ -300,25 +375,10 @@ const HomeScreen: React.FC = () => {
     return 'Good Evening,';
   };
 
-  // Effects
+  // Initialize user data on component mount
   useEffect(() => {
     fetchUserData();
   }, []);
-
-  useEffect(() => {
-    console.log('Bus from params:', bus);
-    if (bus?.location && mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: bus.location.latitude,
-          longitude: bus.location.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        1000
-      );
-    }
-  }, [bus]);
 
   return (
     <View style={homeStyles.container}>
@@ -352,26 +412,34 @@ const HomeScreen: React.FC = () => {
           showsUserLocation
           followsUserLocation
         >
+          {/* User location marker */}
           {location && (
             <Marker coordinate={location} title="You are here" pinColor="blue" />
           )}
-          {buses
-            .filter((b) => bus && b.id === bus.id) // only keep the one you selected
-            .map((b) =>
-              b.location ? (
-                <Marker
-                  key={b.id}
-                  coordinate={{
-                    latitude: b.location.latitude,
-                    longitude: b.location.longitude,
-                  }}
-                  title={b.route}
-                  description={`Seats: ${b.available_seats}`}
-                  pinColor="red"
-                />
-              ) : null
-            )
-          }
+
+          {/* Current selected bus marker with real-time location */}
+          {selectedBus && currentBusLocation && (
+            <Marker
+              key={`${selectedBus.id}-${currentBusLocation.latitude}-${currentBusLocation.longitude}`}
+              coordinate={{
+                latitude: currentBusLocation.latitude,
+                longitude: currentBusLocation.longitude,
+              }}
+              title={selectedBus.route}
+              description={`Seats: ${selectedBus.available_seats}`}
+              pinColor="red"
+            />
+          )}
+
+          {/* Road-following polyline using OSRM coordinates */}
+          {routeCoordinates.length > 0 && (
+            <Polyline
+              coordinates={routeCoordinates}
+              strokeColor="#ffffffff"  // line color (white)
+              strokeWidth={3}          // thickness
+              lineDashPattern={[0]}    // solid line
+            />
+          )}
         </MapView>
       </View>
 
