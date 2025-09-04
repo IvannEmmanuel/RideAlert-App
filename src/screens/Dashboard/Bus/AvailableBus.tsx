@@ -40,7 +40,7 @@ const AvailableBus = () => {
     useEffect(() => {
         const connectWS = async () => {
             const user = await getUser();
-            const fleetId = user?.fleet_id; // make sure this exists
+            const fleetId = user?.fleet_id;
 
             if (!fleetId) {
                 console.warn('No fleet_id found for user');
@@ -48,7 +48,7 @@ const AvailableBus = () => {
             }
 
             // Adjust IP to your backend's LAN IP
-            const wsUrl = `ws://192.168.1.7:8000/ws/vehicles/all/${fleetId}`;
+            const wsUrl = `ws://192.168.1.7:8000/ws/vehicles/available/${fleetId}`;
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
 
@@ -59,7 +59,7 @@ const AvailableBus = () => {
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    setBuses(data); // data is the array of vehicles from backend
+                    setBuses(data);
                 } catch (err) {
                     console.error('Error parsing WS message', err);
                 }
@@ -86,7 +86,7 @@ const AvailableBus = () => {
     return (
         <>
             <View style={availableBusStyle.container}>
-                {/* Top section */}
+            
                 <View style={availableBusStyle.topContainer}>
                     <TouchableOpacity onPress={onPressBack}>
                         <Image source={require('../../../images/back-arrow.png')} />
@@ -94,12 +94,12 @@ const AvailableBus = () => {
                     <Text style={availableBusStyle.availableText}>Available Buses</Text>
                 </View>
 
-                {/* Filter */}
+            
                 <View style={availableBusStyle.filterContainer}>
                     <Text style={availableBusStyle.filterText}>All</Text>
                 </View>
 
-                {/* Bus Cards Row */}
+            
                 <View style={availableBusStyle.bussesRow}>
                     {buses.map((bus, index) => (
                         <View key={bus.id || index} style={availableBusStyle.busRow}>
@@ -118,7 +118,13 @@ const AvailableBus = () => {
                                     </Text>
                                     <TouchableOpacity
                                         style={availableBusStyle.notifyButton}
-                                        onPress={() => showNotification(bus.route)}
+                                        onPress={() => {
+                                            if (bus.location) {
+                                                navigation.navigate('Home', { bus: bus });
+                                            } else {
+                                                console.warn("This bus has no location yet.");
+                                            }
+                                        }}
                                     >
                                         <Text style={availableBusStyle.notifyText}>Notify</Text>
                                     </TouchableOpacity>
