@@ -211,199 +211,91 @@
 // export default HomeScreen;
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, Dimensions, PermissionsAndroid } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated, Dimensions } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { useNavigation } from '@react-navigation/native';
-import RNGetLocation from 'react-native-get-location';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { getToken, getUser } from '../../../utils/authStorage';
-// import { sendLocationToBackend } from './sendLocation';
 import { NotificationModal } from '../../../components/NotificationModal';
 import homeStyles from '../../../styles/homeStyles';
+import DEFAULT_REGION from './default_region';
+import { useLocation } from '../../../context/LocationContext';
 
 const { height, width } = Dimensions.get('window');
 
-const DEFAULT_REGION = {
-  latitude: 8.485255,
-  longitude: 124.653642,
-  latitudeDelta: 0.01,
-  longitudeDelta: 0.01,
-};
+interface Location {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
 
-const HomeScreen = () => {
+interface User {
+  id: string;
+  first_name: string;
+  fleet_id?: string;
+}
+
+const HomeScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const bus = route.params?.bus;
+  const [buses, setBuses] = useState<any[]>([]);
+
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<any>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
 
   const mapRef = useRef<MapView>(null);
   const animation = useRef(new Animated.Value(0)).current;
-  const navigation = useNavigation();
-  const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isLocationRequestInProgress = useRef(false);
-  const lastLocationTimeRef = useRef<number>(0);
-  const lastSuccessfulLocationRef = useRef<any>(null);
 
-  // Request location permission
-  const requestLocationPermission = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: "Location Permission",
-          message: "This app needs access to your location to track your position",
-          buttonNeutral: "Ask Me Later",
-          buttonNegative: "Cancel",
-          buttonPositive: "OK"
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.error('Permission error:', err);
-      return false;
-    }
+  const { location, error } = useLocation();
+
+  // Animation configuration
+  const animatedStyle = {
+    width: animation.interpolate({ inputRange: [0, 1], outputRange: [60, width] }),
+    height: animation.interpolate({ inputRange: [0, 1], outputRange: [60, 210] }),
+    borderTopLeftRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 48] }),
+    borderTopRightRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 48] }),
+    borderBottomLeftRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }),
+    borderBottomRightRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }),
+    backgroundColor: animation.interpolate({ inputRange: [0, 1], outputRange: ['#0500FE', '#F7F6FB'] }),
+    bottom: animation.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }),
+    left: animation.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
   };
 
-  // Get current location using react-native-get-location
-  const getCurrentLocation = async () => {
-    // Prevent multiple simultaneous location requests
-    if (isLocationRequestInProgress.current) {
-      console.log('Location request already in progress, skipping...');
-      return;
-    }
-
-    // Throttle location requests to prevent too frequent calls
-    const now = Date.now();
-    if (now - lastLocationTimeRef.current < 4000) { // 4 second throttle
-      console.log('Location request throttled');
-      return;
-    }
-
-    isLocationRequestInProgress.current = true;
-    lastLocationTimeRef.current = now;
-
-    try {
-      const location = await RNGetLocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 8000, // Increased timeout to 8 seconds
-        maximumAge: 30000, // Accept cached locations up to 30 seconds old
-      });
-
-      const newLocation = {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-
-      setCurrentLocation(newLocation);
-      setLocationError(null);
-      lastSuccessfulLocationRef.current = newLocation;
-
-      // // Send to backend if token exists
-      // if (token) {
-      //   sendLocationToBackend(location.latitude, location.longitude, token);
-      // }
-
-      // Center map on location
-      mapRef.current?.animateToRegion(newLocation, 1000);
-
-    } catch (error: any) {
-      // Only log errors that aren't cancellation-related or timeouts
-      if (error.code !== 'CANCELLED' &&
-        error.message !== 'Location cancelled by another request' &&
-        error.code !== 'TIMEOUT') {
-        console.error('Error getting location:', error);
-
-        if (error.code === 'UNAVAILABLE') {
-          setLocationError('Location services are not available');
-        } else if (error.code === 'UNAUTHORIZED') {
-          setLocationError('Location permission denied');
-        } else {
-          setLocationError('Failed to get location');
-        }
-      } else if (error.code === 'TIMEOUT') {
-        // Timeout is expected, not a real error
-        console.log('Location request timed out (will retry)');
-
-        // Use last known location if available
-        if (lastSuccessfulLocationRef.current) {
-          setCurrentLocation(lastSuccessfulLocationRef.current);
-          // if (token) {
-          //   sendLocationToBackend(
-          //     lastSuccessfulLocationRef.current.latitude,
-          //     lastSuccessfulLocationRef.current.longitude,
-          //     token
-          //   );
-          // }
-        }
-      } else {
-        // This is expected behavior, no need to log as error
-        console.log('Location request cancelled (expected behavior)');
-      }
-    } finally {
-      isLocationRequestInProgress.current = false;
-    }
-  };
-
-  // Start location updates every 5 seconds
-  const startLocationUpdates = () => {
-    // Get initial location immediately
-    getCurrentLocation();
-
-    // Then set up interval for every 5 seconds
-    locationIntervalRef.current = setInterval(getCurrentLocation, 5000);
-  };
-
-  // Stop location updates
-  const stopLocationUpdates = () => {
-    if (locationIntervalRef.current) {
-      clearInterval(locationIntervalRef.current);
-      locationIntervalRef.current = null;
-    }
-    isLocationRequestInProgress.current = false;
-  };
-
-  // Fetch token and user
   useEffect(() => {
-    const fetchData = async () => {
-      const t = await getToken();
-      const u = await getUser();
-      setToken(t);
-      setUser(u);
-    };
-    fetchData();
-  }, []);
+    if (!user?.fleet_id) return;
 
-  // Setup location tracking
-  useEffect(() => {
-    const initLocationTracking = async () => {
-      const hasPermission = await requestLocationPermission();
-      if (hasPermission) {
-        startLocationUpdates();
-      } else {
-        setLocationError('Location permission denied');
+    const wsUrl = `ws://192.168.1.7:8000/ws/vehicles/available/${user.fleet_id}`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => console.log("Connected to WS for fleet", user.fleet_id);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Available vehicles:", data);
+        setBuses(data); // keep updating buses in state
+      } catch (err) {
+        console.error("WS parse error:", err);
       }
     };
 
-    initLocationTracking();
+    ws.onerror = (err) => console.error("WS error:", err);
+    ws.onclose = () => console.log("WS closed");
 
-    // Cleanup on component unmount
-    return () => stopLocationUpdates();
-  }, [token]);
+    return () => ws.close();
+  }, [user?.fleet_id]);
 
-  const handleNotificationPress = () => setModalVisible(true);
-  const handleSetting = () => navigation.navigate('Profile');
-  const handleSearchBus = () => navigation.navigate('AvailableBus');
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning,';
-    if (hour < 18) return 'Good Afternoon,';
-    return 'Good Evening,';
+  // Fetch user data
+  const fetchUserData = async () => {
+    const [t, u] = await Promise.all([getToken(), getUser()]);
+    setToken(t);
+    setUser(u);
   };
 
+  // Handle navigation and UI interactions
   const handleSearchPress = () => {
     Animated.timing(animation, {
       toValue: 1,
@@ -422,93 +314,120 @@ const HomeScreen = () => {
     setIsSearchExpanded(false);
   };
 
-  const animatedStyle = {
-    width: animation.interpolate({ inputRange: [0, 1], outputRange: [60, width] }),
-    height: animation.interpolate({ inputRange: [0, 1], outputRange: [60, 210] }),
-    borderTopLeftRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 48] }),
-    borderTopRightRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 48] }),
-    borderBottomLeftRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }),
-    borderBottomRightRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }),
-    backgroundColor: animation.interpolate({ inputRange: [0, 1], outputRange: ['#0500FE', '#F7F6FB'] }),
-    bottom: animation.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }),
-    left: animation.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 18) return 'Good Afternoon,';
+    return 'Good Evening,';
   };
 
+  // Effects
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    console.log('Bus from params:', bus);
+    if (bus?.location && mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: bus.location.latitude,
+          longitude: bus.location.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        1000
+      );
+    }
+  }, [bus]);
+
   return (
-    <>
-      <View style={homeStyles.container}>
-        <View style={homeStyles.topContainer}>
-          <View style={homeStyles.subTopContainer}>
-            <View style={homeStyles.profileContainer}>
-              <Text style={homeStyles.profileText}>
-                {user?.first_name?.charAt(0)?.toUpperCase() || ''}
-              </Text>
-            </View>
-            <View style={homeStyles.informationContainer}>
-              <Text style={homeStyles.goodmorningText}>{getGreeting()}</Text>
-              <Text style={homeStyles.userText}>{user?.first_name}</Text>
-            </View>
-            <View style={homeStyles.settingContainer}>
-              <TouchableOpacity onPress={handleNotificationPress}>
-                <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSetting}>
-                <Image source={require('../../../images/settings.png')} style={homeStyles.settings} />
-              </TouchableOpacity>
-            </View>
+    <View style={homeStyles.container}>
+      <View style={homeStyles.topContainer}>
+        <View style={homeStyles.subTopContainer}>
+          <View style={homeStyles.profileContainer}>
+            <Text style={homeStyles.profileText}>
+              {user?.first_name?.charAt(0)?.toUpperCase() || ''}
+            </Text>
+          </View>
+          <View style={homeStyles.informationContainer}>
+            <Text style={homeStyles.goodmorningText}>{getGreeting()}</Text>
+            <Text style={homeStyles.userText}>{user?.first_name}</Text>
+          </View>
+          <View style={homeStyles.settingContainer}>
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+              <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+              <Image source={require('../../../images/settings.png')} style={homeStyles.settings} />
+            </TouchableOpacity>
           </View>
         </View>
-
-        <View style={homeStyles.mapContainer}>
-          <MapView
-            ref={mapRef}
-            style={homeStyles.map}
-            initialRegion={DEFAULT_REGION}
-            showsUserLocation={true}
-            followsUserLocation={true}
-          >
-            {currentLocation && (
-              <Marker
-                coordinate={currentLocation}
-                title="You are here"
-                description="Your current location"
-                pinColor="blue"
-              />
-            )}
-          </MapView>
-        </View>
-
-        <NotificationModal
-          visible={modalVisible}
-          onClose={() => setModalVisible(false)}
-          userId={user?.id}
-        />
       </View>
 
+      <View style={homeStyles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          style={homeStyles.map}
+          initialRegion={DEFAULT_REGION}
+          showsUserLocation
+          followsUserLocation
+        >
+          {location && (
+            <Marker coordinate={location} title="You are here" pinColor="blue" />
+          )}
+          {buses
+            .filter((b) => bus && b.id === bus.id) // only keep the one you selected
+            .map((b) =>
+              b.location ? (
+                <Marker
+                  key={b.id}
+                  coordinate={{
+                    latitude: b.location.latitude,
+                    longitude: b.location.longitude,
+                  }}
+                  title={b.route}
+                  description={`Seats: ${b.available_seats}`}
+                  pinColor="red"
+                />
+              ) : null
+            )
+          }
+        </MapView>
+      </View>
+
+      <NotificationModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        userId={user?.id}
+      />
+
       <Animated.View style={[homeStyles.searchContainer, animatedStyle]}>
-        {!isSearchExpanded ? (
-          <TouchableOpacity onPress={handleSearchPress} style={{ justifyContent: "center", flex: 1 }}>
-            <Image source={require('../../../images/search.png')} style={{ alignSelf: 'center' }} />
-          </TouchableOpacity>
-        ) : (
-          <>
+        {isSearchExpanded ? (
+          <View>
             <View style={homeStyles.subSearchContainer}>
               <TouchableOpacity onPress={handleCloseSearch}>
                 <View style={homeStyles.stroke} />
               </TouchableOpacity>
               <Text style={homeStyles.rideText}>Looking for a ride?</Text>
             </View>
-
-            <TouchableOpacity style={homeStyles.subMainSearchContainer} onPress={handleSearchBus}>
+            <TouchableOpacity
+              style={homeStyles.subMainSearchContainer}
+              onPress={() => navigation.navigate('AvailableBus')}
+            >
               <View style={homeStyles.subOfMainSearchContainer}>
                 <Image source={require('../../../images/search.png')} />
                 <Text style={homeStyles.searchText}>Search Buses</Text>
               </View>
             </TouchableOpacity>
-          </>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={handleSearchPress} style={{ flex: 1, justifyContent: 'center' }}>
+            <Image source={require('../../../images/search.png')} style={{ alignSelf: 'center' }} />
+          </TouchableOpacity>
         )}
       </Animated.View>
-    </>
+    </View>
   );
 };
 
