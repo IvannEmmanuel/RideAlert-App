@@ -9,6 +9,7 @@ import {
 } from "@react-native-firebase/messaging";
 import PushNotification from "react-native-push-notification";
 import { LocationProvider } from "./src/context/LocationContext";
+import { BusProvider } from "./src/context/BusContext";
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -84,9 +85,11 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <LocationProvider>
-      <AppNavigator />
-    </LocationProvider>
+    <BusProvider>
+      <LocationProvider>
+        <AppNavigator />
+      </LocationProvider>
+    </BusProvider>
   );
 };
 

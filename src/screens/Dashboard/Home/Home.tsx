@@ -222,6 +222,7 @@ import { useLocation } from '../../../context/LocationContext';
 import { getAnimatedStyle } from './animateStyle/animatedStyle';
 import getGreeting from './utils/greeting';
 import getRouteCoordinates from './utils/getRouteCoordinates';
+import { useBus } from '../../../context/BusContext';
 
 interface User {
   id: string;
@@ -233,20 +234,23 @@ const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const initialBus = route.params?.bus;
-  const [buses, setBuses] = useState<any[]>([]);
-  const [selectedBus, setSelectedBus] = useState(initialBus || null);
-  const [currentBusLocation, setCurrentBusLocation] = useState(null);
 
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [routeCoordinates, setRouteCoordinates] = useState<any[]>([]);
 
   const mapRef = useRef<MapView>(null);
   const animation = useRef(new Animated.Value(0)).current;
 
   const { location, error } = useLocation();
+
+  const {
+    buses, setBuses,
+    selectedBus, setSelectedBus,
+    currentBusLocation, setCurrentBusLocation,
+    routeCoordinates, setRouteCoordinates
+  } = useBus();
 
   useEffect(() => {
     if (initialBus) {
@@ -387,9 +391,9 @@ const HomeScreen: React.FC = () => {
           {routeCoordinates.length > 0 && (
             <Polyline
               coordinates={routeCoordinates}
-              strokeColor="#ffffffff"  
-              strokeWidth={3}         
-              lineDashPattern={[0]} 
+              strokeColor="#ffffffff"
+              strokeWidth={3}
+              lineDashPattern={[0]}
             />
           )}
         </MapView>
