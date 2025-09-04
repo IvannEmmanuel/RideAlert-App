@@ -6,7 +6,7 @@ const availableBusStyle = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F7F6FB',
-        top: height * 0.02,
+        top: height * 0.05,
     },
     topContainer: {
         flexDirection: 'row',

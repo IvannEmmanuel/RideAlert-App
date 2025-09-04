@@ -4,7 +4,7 @@ const { width, height } = Dimensions.get('window');
 
 const profileStyles = StyleSheet.create({
   container: {
-    top: height * 0.04,
+    top: height * 0.05,
     paddingVertical: width * 0.01,
     width: width * 1,
     height: height * 0.25,
