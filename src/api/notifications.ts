@@ -1,10 +1,11 @@
 // Enhanced notifications.ts with better error handling and debugging
 
 import axios from 'axios';
+import { BASE_URL } from '../config/apiConfig';
 
 export const fetchNotificationsByUser = async (userId: string) => {
   console.log('API: Fetching notifications for userId:', userId);
-  const url = `http://192.168.1.7:8000/notifications/user/${userId}`;
+  const url = `${BASE_URL}/notifications/user/${userId}`;
   console.log('API: Full URL:', url);
   
   try {

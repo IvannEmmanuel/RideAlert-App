@@ -1,10 +1,11 @@
 // utils/api.ts
 import axios from 'axios';
 import { getToken } from './authStorage'; // your existing token getter
+import { BASE_URL } from '../config/apiConfig';
 
 // Create an axios instance
 const api = axios.create({
-  baseURL: 'http://192.168.1.7:8000', // change to your FastAPI base URL
+  baseURL: `${BASE_URL}`, // change to your FastAPI base URL
   headers: {
     'Content-Type': 'application/json',
   },

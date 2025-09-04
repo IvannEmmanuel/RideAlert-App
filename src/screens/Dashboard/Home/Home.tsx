@@ -223,6 +223,7 @@ import { getAnimatedStyle } from './animateStyle/animatedStyle';
 import getGreeting from './utils/greeting';
 import getRouteCoordinates from './utils/getRouteCoordinates';
 import { useBus } from '../../../context/BusContext';
+import { BASE_URL } from '../../../config/apiConfig';
 
 interface User {
   id: string;
@@ -287,7 +288,7 @@ const HomeScreen: React.FC = () => {
   useEffect(() => {
     if (!user?.fleet_id) return;
 
-    const wsUrl = `ws://192.168.1.7:8000/ws/vehicles/available/${user.fleet_id}`;
+    const wsUrl = `ws://${BASE_URL}/ws/vehicles/available/${user.fleet_id}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => console.log("Connected to WS for fleet", user.fleet_id);

@@ -4,6 +4,7 @@ import availableBusStyle from '../../../styles/availableBus';
 import { useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 import { getUser } from '../../../utils/authStorage'; // assuming you store fleet_id here
+import { BASE_URL } from '../../../config/apiConfig';
 
 const { height } = Dimensions.get('window');
 
@@ -47,13 +48,12 @@ const AvailableBus = () => {
                 return;
             }
 
-            // Adjust IP to your backend's LAN IP
-            const wsUrl = `ws://192.168.1.7:8000/ws/vehicles/available/${fleetId}`;
-            const ws = new WebSocket(wsUrl);
+            // ✅ Build the full URL dynamically
+            const ws = new WebSocket(`${BASE_URL}/ws/vehicles/available/${fleetId}`);
             wsRef.current = ws;
 
             ws.onopen = () => {
-                console.log('Connected to vehicle WebSocket');
+                console.log('Connected to vehicle WebSocket', fleetId);
             };
 
             ws.onmessage = (event) => {
@@ -86,7 +86,7 @@ const AvailableBus = () => {
     return (
         <>
             <View style={availableBusStyle.container}>
-            
+
                 <View style={availableBusStyle.topContainer}>
                     <TouchableOpacity onPress={onPressBack}>
                         <Image source={require('../../../images/back-arrow.png')} />
@@ -94,12 +94,12 @@ const AvailableBus = () => {
                     <Text style={availableBusStyle.availableText}>Available Buses</Text>
                 </View>
 
-            
+
                 <View style={availableBusStyle.filterContainer}>
                     <Text style={availableBusStyle.filterText}>All</Text>
                 </View>
 
-            
+
                 <View style={availableBusStyle.bussesRow}>
                     {buses.map((bus, index) => (
                         <View key={bus.id || index} style={availableBusStyle.busRow}>
