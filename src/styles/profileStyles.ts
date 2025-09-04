@@ -48,7 +48,7 @@ const profileStyles = StyleSheet.create({
   personalText: {
     fontFamily: 'Montserrat-Bold',
     fontSize: 18,
-    bottom: height * 0.03
+    bottom: height * 0.05
   },
   informationContainer: {
     backgroundColor: "#FFFFFF",
