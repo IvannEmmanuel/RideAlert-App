@@ -211,7 +211,7 @@
 // export default HomeScreen;
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getToken, getUser } from '../../../utils/authStorage';
@@ -219,15 +219,7 @@ import { NotificationModal } from '../../../components/NotificationModal';
 import homeStyles from '../../../styles/homeStyles';
 import DEFAULT_REGION from './default_region';
 import { useLocation } from '../../../context/LocationContext';
-
-const { height, width } = Dimensions.get('window');
-
-interface Location {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
-}
+import { getAnimatedStyle } from './animateStyle/animatedStyle';
 
 interface User {
   id: string;
@@ -250,19 +242,6 @@ const HomeScreen: React.FC = () => {
   const animation = useRef(new Animated.Value(0)).current;
 
   const { location, error } = useLocation();
-
-  // Animation configuration
-  const animatedStyle = {
-    width: animation.interpolate({ inputRange: [0, 1], outputRange: [60, width] }),
-    height: animation.interpolate({ inputRange: [0, 1], outputRange: [60, 210] }),
-    borderTopLeftRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 48] }),
-    borderTopRightRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 48] }),
-    borderBottomLeftRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }),
-    borderBottomRightRadius: animation.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }),
-    backgroundColor: animation.interpolate({ inputRange: [0, 1], outputRange: ['#0500FE', '#F7F6FB'] }),
-    bottom: animation.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }),
-    left: animation.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
-  };
 
   useEffect(() => {
     if (!user?.fleet_id) return;
@@ -402,7 +381,7 @@ const HomeScreen: React.FC = () => {
         userId={user?.id}
       />
 
-      <Animated.View style={[homeStyles.searchContainer, animatedStyle]}>
+      <Animated.View style={[homeStyles.searchContainer, getAnimatedStyle(animation)]}>
         {isSearchExpanded ? (
           <View>
             <View style={homeStyles.subSearchContainer}>
