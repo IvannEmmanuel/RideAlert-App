@@ -220,6 +220,8 @@ import homeStyles from '../../../styles/homeStyles';
 import DEFAULT_REGION from './default_region';
 import { useLocation } from '../../../context/LocationContext';
 import { getAnimatedStyle } from './animateStyle/animatedStyle';
+import getGreeting from './utils/greeting';
+import getRouteCoordinates from './utils/getRouteCoordinates';
 
 interface User {
   id: string;
@@ -246,44 +248,6 @@ const HomeScreen: React.FC = () => {
 
   const { location, error } = useLocation();
 
-  // OSRM Route fetching function
-  const getRouteCoordinates = async (start: any, end: any) => {
-    try {
-      console.log('Fetching route from:', start, 'to:', end);
-
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('OSRM Response:', data);
-
-      if (data.routes && data.routes.length > 0) {
-        const coordinates = data.routes[0].geometry.coordinates.map((coord: number[]) => ({
-          latitude: coord[1],  // OSRM returns [lng, lat], we need [lat, lng]
-          longitude: coord[0]
-        }));
-        console.log('Route coordinates count:', coordinates.length);
-        return coordinates;
-      } else {
-        console.log('No routes found');
-        return [];
-      }
-    } catch (error) {
-      console.error('Error fetching route:', error);
-      // Fallback to straight line if routing fails
-      return [
-        { latitude: start.latitude, longitude: start.longitude },
-        { latitude: end.latitude, longitude: end.longitude }
-      ];
-    }
-  };
-
-  // Update selected bus when route params change
   useEffect(() => {
     if (initialBus) {
       setSelectedBus(initialBus);
@@ -291,7 +255,6 @@ const HomeScreen: React.FC = () => {
     }
   }, [initialBus]);
 
-  // Update current bus location when buses array changes
   useEffect(() => {
     if (selectedBus && buses.length > 0) {
       const updatedBus = buses.find(b => b.id === selectedBus.id);
@@ -302,7 +265,6 @@ const HomeScreen: React.FC = () => {
     }
   }, [buses, selectedBus?.id]);
 
-  // Fetch route when current bus location or user location changes
   useEffect(() => {
     const fetchRoute = async () => {
       if (currentBusLocation && location) {
@@ -332,11 +294,11 @@ const HomeScreen: React.FC = () => {
         console.log("Available vehicles:", data);
         setBuses(data); // This will trigger the useEffect that updates currentBusLocation
       } catch (err) {
-        console.error("WS parse error:", err);
+        console.log("WS parse error:", err);
       }
     };
 
-    ws.onerror = (err) => console.error("WS error:", err);
+    ws.onerror = (err) => console.log("WS error:", err);
     ws.onclose = () => console.log("WS closed");
 
     return () => ws.close();
@@ -366,13 +328,6 @@ const HomeScreen: React.FC = () => {
       useNativeDriver: false,
     }).start();
     setIsSearchExpanded(false);
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning,';
-    if (hour < 18) return 'Good Afternoon,';
-    return 'Good Evening,';
   };
 
   // Initialize user data on component mount
@@ -412,12 +367,10 @@ const HomeScreen: React.FC = () => {
           showsUserLocation
           followsUserLocation
         >
-          {/* User location marker */}
           {location && (
             <Marker coordinate={location} title="You are here" pinColor="blue" />
           )}
 
-          {/* Current selected bus marker with real-time location */}
           {selectedBus && currentBusLocation && (
             <Marker
               key={`${selectedBus.id}-${currentBusLocation.latitude}-${currentBusLocation.longitude}`}
@@ -431,13 +384,12 @@ const HomeScreen: React.FC = () => {
             />
           )}
 
-          {/* Road-following polyline using OSRM coordinates */}
           {routeCoordinates.length > 0 && (
             <Polyline
               coordinates={routeCoordinates}
-              strokeColor="#ffffffff"  // line color (white)
-              strokeWidth={3}          // thickness
-              lineDashPattern={[0]}    // solid line
+              strokeColor="#ffffffff"  
+              strokeWidth={3}         
+              lineDashPattern={[0]} 
             />
           )}
         </MapView>
