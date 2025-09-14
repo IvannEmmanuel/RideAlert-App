@@ -11,6 +11,13 @@ export const BusProvider = ({ children }) => {
   const [currentBusLocation, setCurrentBusLocation] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
 
+  const resetBusData = () => {
+    setBuses([]);
+    setSelectedBus(null);
+    setCurrentBusLocation(null);
+    setRouteCoordinates([]);
+  };
+
   useEffect(() => {
     const connect = async () => {
       const user = await getUser();
@@ -39,6 +46,7 @@ export const BusProvider = ({ children }) => {
       selectedBus, setSelectedBus,
       currentBusLocation, setCurrentBusLocation,
       routeCoordinates, setRouteCoordinates
+      , resetBusData
     }}>
       {children}
     </BusContext.Provider>
