@@ -288,7 +288,7 @@ const HomeScreen: React.FC = () => {
   useEffect(() => {
     if (!user?.fleet_id) return;
 
-    const wsUrl = `ws://${BASE_URL}/ws/vehicles/available/${user.fleet_id}`;
+    const wsUrl = `wss://${BASE_URL}/ws/vehicles/available/${user.fleet_id}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => console.log("Connected to WS for fleet", user.fleet_id);
