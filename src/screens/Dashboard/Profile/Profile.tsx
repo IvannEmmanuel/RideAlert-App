@@ -11,10 +11,13 @@ import { useNavigation } from '@react-navigation/native';
 import profileStyles from '../../../styles/profileStyles';
 import { getMessaging } from '@react-native-firebase/messaging';
 import { api } from '../../../utils/api';
+import { useBus } from '../../../context/BusContext';
 
 const Profile = () => {
+  const {resetBusData} = useBus();
   const navigation = useNavigation();
   const [user, setUser] = useState<any>(null);
+  const { setSelectedBus, setRouteCoordinates } = useBus();
 
   const handleBack = () => {
     navigation.navigate('Home')
@@ -42,6 +45,8 @@ const Profile = () => {
 
       // Remove local auth token
       await removeToken();
+
+      resetBusData();
 
       // Navigate away
       navigation.navigate('InitialSecondPhase');
