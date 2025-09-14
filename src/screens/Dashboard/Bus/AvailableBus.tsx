@@ -5,14 +5,16 @@ import { useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 import { getUser } from '../../../utils/authStorage'; // assuming you store fleet_id here
 import { BASE_URL } from '../../../config/apiConfig';
+import { useBus } from '../../../context/BusContext';
 
 const { height } = Dimensions.get('window');
 
 const AvailableBus = () => {
+    const { setSelectedBus, setBuses: setGlobalBuses } = useBus();
     const navigation = useNavigation();
     const [isNotifyVisible, setIsNotifyVisible] = useState(false);
     const [selectedRoute, setSelectedRoute] = useState('');
-    const [buses, setBuses] = useState<any[]>([]);
+    const [buses, setLocalBuses] = useState<any[]>([]); // ✅ local state
     const slideAnim = useState(new Animated.Value(height))[0];
     const wsRef = useRef<WebSocket | null>(null);
 
@@ -59,7 +61,8 @@ const AvailableBus = () => {
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    setBuses(data);
+                    setLocalBuses(data);    // ✅ update local state for this screen
+                    setGlobalBuses(data);   // ✅ also sync to global context
                 } catch (err) {
                     console.error('Error parsing WS message', err);
                 }
@@ -120,7 +123,15 @@ const AvailableBus = () => {
                                         style={availableBusStyle.notifyButton}
                                         onPress={() => {
                                             if (bus.location) {
-                                                navigation.navigate('Home', { bus: bus });
+                                                setSelectedBus(bus); // ✅ update global context
+                                                setGlobalBuses(prev => {
+                                                    const exists = prev.find(b => b.id === bus.id);
+                                                    if (exists) {
+                                                        return prev.map(b => (b.id === bus.id ? bus : b));
+                                                    }
+                                                    return [...prev, bus];
+                                                });
+                                                navigation.navigate('Home');  // just go back
                                             } else {
                                                 console.warn("This bus has no location yet.");
                                             }

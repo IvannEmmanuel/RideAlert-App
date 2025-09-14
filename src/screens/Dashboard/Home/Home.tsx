@@ -234,7 +234,6 @@ interface User {
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const initialBus = route.params?.bus;
 
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -254,21 +253,14 @@ const HomeScreen: React.FC = () => {
   } = useBus();
 
   useEffect(() => {
-    if (initialBus) {
-      setSelectedBus(initialBus);
-      setCurrentBusLocation(initialBus.location);
-    }
-  }, [initialBus]);
-
-  useEffect(() => {
     if (selectedBus && buses.length > 0) {
       const updatedBus = buses.find(b => b.id === selectedBus.id);
       if (updatedBus && updatedBus.location) {
-        console.log('Bus location updated via WebSocket:', updatedBus.location);
         setCurrentBusLocation(updatedBus.location);
       }
     }
   }, [buses, selectedBus?.id]);
+
 
   useEffect(() => {
     const fetchRoute = async () => {
