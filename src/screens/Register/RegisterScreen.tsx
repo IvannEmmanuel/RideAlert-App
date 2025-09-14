@@ -1,4 +1,4 @@
-import { BASE_URL } from '../../config/apiConfig';
+import { BASE_URL, WS_BASE_URL } from '../../config/apiConfig';
 import { registerStyles as styles } from "../../styles/registerStyles";
 import {
   Text,
@@ -131,16 +131,18 @@ const Register = () => {
   };
 
   useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        const response = await axios.get(`${BASE_URL}/fleets/all`);
-        setCompanies(response.data);
-      } catch (error) {
-        console.error("Error fetching companies:", error.message);
+    const ws = new WebSocket(`${WS_BASE_URL}/fleets/ws/all`);
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.fleets) {
+        setCompanies(data.fleets);
       }
     };
 
-    fetchCompanies();
+    ws.onerror = (err) => console.error("WebSocket error:", err);
+
+    return () => ws.close();
   }, []);
 
   useEffect(() => {
