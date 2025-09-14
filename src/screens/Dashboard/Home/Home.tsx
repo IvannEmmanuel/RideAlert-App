@@ -211,7 +211,7 @@
 // export default HomeScreen;
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated, Vibration } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getToken, getUser } from '../../../utils/authStorage';
@@ -224,6 +224,8 @@ import getGreeting from './utils/greeting';
 import getRouteCoordinates from './utils/getRouteCoordinates';
 import { useBus } from '../../../context/BusContext';
 import { BASE_URL } from '../../../config/apiConfig';
+import { getDistanceMeters } from './utils/calcDistance';
+import axios from 'axios';
 
 interface User {
   id: string;
@@ -244,6 +246,44 @@ const HomeScreen: React.FC = () => {
   const animation = useRef(new Animated.Value(0)).current;
 
   const { location, error } = useLocation();
+
+  const [notified, setNotified] = useState(false);
+
+  useEffect(() => {
+    if (!location || !currentBusLocation || !user?.id) return;
+
+    const distance = getDistanceMeters(
+      location.latitude,
+      location.longitude,
+      currentBusLocation.latitude,
+      currentBusLocation.longitude
+    );
+
+    console.log("Distance to bus:", distance, "meters");
+
+    if (distance <= 500 && !notified) {
+      let message = `🚍 Your bus is within ${Math.round(distance)} meters!`;
+      Vibration.vibrate(2000);
+
+      axios.post(`${BASE_URL}/notifications/`,
+        {
+          user_id: user.id,
+          message,
+          fleet_id: user.fleet_id,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      )
+        .then(res => console.log("Notification sent:", res.data))
+        .catch(err => console.error("Notification error:", err));
+
+      setNotified(true);
+    }
+
+    // Reset when bus goes far away again
+    if (distance > 1000 && notified) {
+      setNotified(false);
+    }
+  }, [location, currentBusLocation, user, notified]);
 
   const {
     buses, setBuses,
