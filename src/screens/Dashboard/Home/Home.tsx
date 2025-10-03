@@ -224,8 +224,7 @@ import getGreeting from './utils/greeting';
 import getRouteCoordinates from './utils/getRouteCoordinates';
 import { useBus } from '../../../context/BusContext';
 import { BASE_URL } from '../../../config/apiConfig';
-import { getDistanceMeters } from './utils/calcDistance';
-import axios from 'axios';
+import { sendLocationToBackend } from './sendLocation';
 
 interface User {
   id: string;
@@ -247,50 +246,32 @@ const HomeScreen: React.FC = () => {
 
   const { location, error } = useLocation();
 
-  const [notified, setNotified] = useState(false);
-
-  useEffect(() => {
-    if (!location || !currentBusLocation || !user?.id) return;
-
-    const distance = getDistanceMeters(
-      location.latitude,
-      location.longitude,
-      currentBusLocation.latitude,
-      currentBusLocation.longitude
-    );
-
-    console.log("Distance to bus:", distance, "meters");
-
-    if (distance <= 500 && !notified) {
-      let message = `🚍 Your bus is within ${Math.round(distance)} meters!`;
-      Vibration.vibrate(2000);
-
-      axios.post(`${BASE_URL}/notifications/`,
-        {
-          user_id: user.id,
-          message,
-          fleet_id: user.fleet_id,
-        },
-        { headers: { "Content-Type": "application/json" } }
-      )
-        .then(res => console.log("Notification sent:", res.data))
-        .catch(err => console.error("Notification error:", err));
-
-      setNotified(true);
-    }
-
-    // Reset when bus goes far away again
-    if (distance > 1000 && notified) {
-      setNotified(false);
-    }
-  }, [location, currentBusLocation, user, notified]);
-
   const {
     buses, setBuses,
     selectedBus, setSelectedBus,
     currentBusLocation, setCurrentBusLocation,
     routeCoordinates, setRouteCoordinates
   } = useBus();
+
+  // Location sending to backend (direct, no debounce)
+  useEffect(() => {
+    console.log('🔍 Location effect triggered:', { 
+      hasLocation: !!location, 
+      location: location, 
+      hasToken: !!token,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!location || !token) {
+      console.log('⏭️ Skipping send: missing location or token');
+      return;
+    }
+
+    console.log('📤 Sending location:', { lat: location.latitude, lng: location.longitude });
+    sendLocationToBackend(location.latitude, location.longitude, token)
+      .then(() => console.log('✅ Location sent to backend'))
+      .catch(err => console.error('❌ Failed to send location', err));
+  }, [location?.latitude, location?.longitude, token]);
 
   useEffect(() => {
     if (selectedBus && buses.length > 0) {
@@ -300,7 +281,6 @@ const HomeScreen: React.FC = () => {
       }
     }
   }, [buses, selectedBus?.id]);
-
 
   useEffect(() => {
     const fetchRoute = async () => {
@@ -346,6 +326,7 @@ const HomeScreen: React.FC = () => {
     const [t, u] = await Promise.all([getToken(), getUser()]);
     setToken(t);
     setUser(u);
+    console.log('👤 User loaded:', { id: u?.id, fleet_id: u?.fleet_id, hasToken: !!t });
   };
 
   // Handle navigation and UI interactions
