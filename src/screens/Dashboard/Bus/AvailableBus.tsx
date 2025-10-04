@@ -116,7 +116,7 @@ const AvailableBus = () => {
                                 {/* ✅ Bound For */}
                                 <View style={availableBusStyle.rowContainer}>
                                     <Text style={availableBusStyle.labelText}>Bound For</Text>
-                                    <Text style={availableBusStyle.valueText}>{bus.bound_for}</Text>
+                                    <Text style={availableBusStyle.valueText}>{bus.bound_for || 'N/A'}</Text>
                                 </View>
 
                                 <View style={availableBusStyle.rowContainer}>
