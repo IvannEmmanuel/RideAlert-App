@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import availableBusStyle from '../../../styles/availableBus';
 import { useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
-import { getUser } from '../../../utils/authStorage'; // assuming you store fleet_id here
+import { getUser, getToken } from '../../../utils/authStorage';
 import { BASE_URL } from '../../../config/apiConfig';
 import { useBus } from '../../../context/BusContext';
 
@@ -14,7 +14,7 @@ const AvailableBus = () => {
     const navigation = useNavigation();
     const [isNotifyVisible, setIsNotifyVisible] = useState(false);
     const [selectedRoute, setSelectedRoute] = useState('');
-    const [buses, setLocalBuses] = useState<any[]>([]); // ✅ local state
+    const [buses, setLocalBuses] = useState<any[]>([]);
     const slideAnim = useState(new Animated.Value(height))[0];
     const wsRef = useRef<WebSocket | null>(null);
     const [filter, setFilter] = useState<'All' | 'IGPIT' | 'BUGO'>('All');
@@ -41,6 +41,42 @@ const AvailableBus = () => {
         }).start(() => setIsNotifyVisible(false));
     };
 
+    // ✅ Function to toggle notify status
+    const toggleNotify = async (vehicleId: string, enable: boolean) => {
+        try {
+            const token = await getToken();
+            if (!token) {
+                console.error('No token found');
+                return;
+            }
+
+            const response = await fetch(`${BASE_URL}/users/toggle-notify`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    notify: enable,
+                    vehicle_id: vehicleId
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Notify status updated:', data);
+                return true;
+            } else {
+                const error = await response.json();
+                console.error('❌ Failed to update notify status:', error);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error toggling notify:', error);
+            return false;
+        }
+    };
+
     useEffect(() => {
         const connectWS = async () => {
             const user = await getUser();
@@ -51,7 +87,6 @@ const AvailableBus = () => {
                 return;
             }
 
-            // ✅ Build the full URL dynamically
             const ws = new WebSocket(`${BASE_URL}/ws/vehicles/available/${fleetId}`);
             wsRef.current = ws;
 
@@ -62,9 +97,9 @@ const AvailableBus = () => {
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log("🚍 Incoming buses:", data);  // 👈 check if bound_for is there
-                    setLocalBuses(data);    // ✅ update local state for this screen
-                    setGlobalBuses(data);   // ✅ also sync to global context
+                    console.log("🚍 Incoming buses:", data);
+                    setLocalBuses(data);
+                    setGlobalBuses(data);
                 } catch (err) {
                     console.error('Error parsing WS message', err);
                 }
@@ -92,12 +127,9 @@ const AvailableBus = () => {
         ? buses
         : buses.filter(bus => bus.bound_for?.toUpperCase() === filter);
 
-
-
     return (
         <>
             <View style={availableBusStyle.container}>
-
                 <View style={availableBusStyle.topContainer}>
                     <TouchableOpacity onPress={onPressBack}>
                         <Image source={require('../../../images/back-arrow.png')} />
@@ -105,9 +137,7 @@ const AvailableBus = () => {
                     <Text style={availableBusStyle.availableText}>Available Buses</Text>
                 </View>
 
-
                 <View style={{ flexDirection: 'row' }}>
-                    {/* All */}
                     <TouchableOpacity
                         style={[
                             availableBusStyle.filterContainer,
@@ -125,7 +155,6 @@ const AvailableBus = () => {
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Igpit */}
                     <TouchableOpacity
                         style={[
                             availableBusStyle.filterContainer,
@@ -143,7 +172,6 @@ const AvailableBus = () => {
                         </Text>
                     </TouchableOpacity>
 
-                    {/* Bugo */}
                     <TouchableOpacity
                         style={[
                             availableBusStyle.filterContainer,
@@ -162,7 +190,6 @@ const AvailableBus = () => {
                     </TouchableOpacity>
                 </View>
 
-
                 <View style={availableBusStyle.bussesRow}>
                     {filteredBuses.map((bus, index) => (
                         <View key={bus.id || index} style={availableBusStyle.busRow}>
@@ -172,7 +199,6 @@ const AvailableBus = () => {
                                     <Text style={availableBusStyle.valueText}>{bus.route}</Text>
                                 </View>
 
-                                {/* ✅ Bound For */}
                                 <View style={availableBusStyle.rowContainer}>
                                     <Text style={availableBusStyle.labelText}>Bound For</Text>
                                     <Text style={availableBusStyle.valueText}>{bus.bound_for || 'N/A'}</Text>
@@ -188,17 +214,32 @@ const AvailableBus = () => {
                                     </Text>
                                     <TouchableOpacity
                                         style={availableBusStyle.notifyButton}
-                                        onPress={() => {
+                                        onPress={async () => {
                                             if (bus.location) {
-                                                setSelectedBus(bus); // ✅ update global context
-                                                setGlobalBuses(prev => {
-                                                    const exists = prev.find(b => b.id === bus.id);
-                                                    if (exists) {
-                                                        return prev.map(b => (b.id === bus.id ? bus : b));
-                                                    }
-                                                    return [...prev, bus];
-                                                });
-                                                navigation.navigate('Home');  // just go back
+                                                // ✅ Enable notifications for this vehicle
+                                                const success = await toggleNotify(bus.id, true);
+                                                
+                                                if (success) {
+                                                    setSelectedBus(bus);
+                                                    setGlobalBuses(prev => {
+                                                        const exists = prev.find(b => b.id === bus.id);
+                                                        if (exists) {
+                                                            return prev.map(b => (b.id === bus.id ? bus : b));
+                                                        }
+                                                        return [...prev, bus];
+                                                    });
+                                                    
+                                                    // Show confirmation animation
+                                                    showNotification(bus.route);
+                                                    
+                                                    // Navigate back after 2 seconds
+                                                    setTimeout(() => {
+                                                        hideNotification();
+                                                        navigation.navigate('Home');
+                                                    }, 2000);
+                                                } else {
+                                                    console.error('Failed to enable notifications');
+                                                }
                                             } else {
                                                 console.warn("This bus has no location yet.");
                                             }
@@ -240,13 +281,11 @@ const AvailableBus = () => {
                         loop
                         style={availableBusStyle.lottieContainer}
                     />
-                    <Text style={availableBusStyle.rideText}>Ride Alert!</Text>
+                    <Text style={availableBusStyle.rideText}>Ride Alert Enabled!</Text>
                     <View style={availableBusStyle.puvTextContainer}>
-                        <Text style={availableBusStyle.puvText}>A PUV of </Text>
+                        <Text style={availableBusStyle.puvText}>You will be notified when a </Text>
                         <Text style={availableBusStyle.puvTextBold}>{selectedRoute}</Text>
-                        <Text style={availableBusStyle.puvText}> route is already </Text>
-                        <Text style={availableBusStyle.puvTextBold}>100 meters</Text>
-                        <Text style={availableBusStyle.puvText}> nearby you</Text>
+                        <Text style={availableBusStyle.puvText}> bus is nearby!</Text>
                     </View>
                 </Animated.View>
             )}
