@@ -386,13 +386,11 @@ const HomeScreen: React.FC = () => {
           followsUserLocation
         >
           {location && (
-            <Marker coordinate={location} title="You are here">
-              <Image
-                source={require('../../../assets/user.png')}
-                style={{ width: 35, height: 35 }}
-                resizeMode="contain"
-              />
-            </Marker>
+            <Marker
+              coordinate={location}
+              title="You are here"
+              image={require('../../../assets/user.png')} // ✅ no opacity issue
+            />
           )}
 
           {selectedBus && currentBusLocation && (
@@ -404,13 +402,9 @@ const HomeScreen: React.FC = () => {
               }}
               title={selectedBus.route}
               description={`Bound For: ${selectedBus.bound_for || "Not available"}`}
-            >
-              <Image
-                source={require('../../../assets/bus.png')}
-                style={{ width: 35, height: 35 }}
-                resizeMode="contain"
-              />
-            </Marker>
+            
+              image={require('../../../assets/bus.png')} // ✅ no opacity issue
+            />
           )}
 
           {routeCoordinates.length > 0 && (
