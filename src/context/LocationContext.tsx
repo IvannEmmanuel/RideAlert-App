@@ -1,3 +1,4 @@
+// LocationContext.tsx - FIXED VERSION (keeps notifications working)
 import React, {
   createContext,
   useContext,
@@ -19,11 +20,13 @@ interface Location {
 interface LocationContextType {
   location: Location | null;
   error: string | null;
+  locationTimestamp: number; // Add timestamp to force updates for notifications
 }
 
 const LocationContext = createContext<LocationContextType>({
   location: null,
   error: null,
+  locationTimestamp: 0,
 });
 
 export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -31,12 +34,12 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [location, setLocation] = useState<Location | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [locationTimestamp, setLocationTimestamp] = useState<number>(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isRequestingRef = useRef(false);
   const lastLocationTimeRef = useRef(0);
   const lastGoodLocationRef = useRef<Location | null>(null);
-
 
   const ensureLocationEnabled = async () => {
     try {
@@ -76,7 +79,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
     if (isRequestingRef.current) return;
 
     const now = Date.now();
-    if (now - lastLocationTimeRef.current < 4000) return;
+    if (now - lastLocationTimeRef.current < 7000) return;
 
     isRequestingRef.current = true;
     lastLocationTimeRef.current = now;
@@ -95,9 +98,19 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
         longitudeDelta: 0.01,
       };
 
+      console.log('📍 New location received:', {
+        lat: newLoc.latitude,
+        lng: newLoc.longitude,
+        timestamp: new Date().toISOString()
+      });
+
+      // ALWAYS UPDATE LOCATION FOR NOTIFICATIONS
+      // But only send to backend if changed significantly
       setLocation(newLoc);
+      setLocationTimestamp(now); // Force context update for notifications
       setError(null);
       lastGoodLocationRef.current = newLoc;
+
     } catch (err: any) {
       handleError(err);
     } finally {
@@ -110,6 +123,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
     if (err.code === "TIMEOUT") {
       if (lastGoodLocationRef.current) {
         setLocation(lastGoodLocationRef.current);
+        setLocationTimestamp(Date.now());
       }
       return;
     }
@@ -121,8 +135,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const startUpdates = () => {
-    getCurrentLocation();
-    intervalRef.current = setInterval(getCurrentLocation, 5000);
+    getCurrentLocation(); // Get initial location
+    intervalRef.current = setInterval(getCurrentLocation, 7000);
   };
 
   const stopUpdates = () => {
@@ -135,7 +149,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
     const init = async () => {
       const ok = await requestLocationPermission();
       if (ok) {
-        await ensureLocationEnabled();   // 👈 Make sure GPS is ON
+        await ensureLocationEnabled();
         startUpdates();
       } else {
         setError("Location permission denied");
@@ -146,7 +160,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   return (
-    <LocationContext.Provider value={{ location, error }}>
+    <LocationContext.Provider value={{ location, error, locationTimestamp }}>
       {children}
     </LocationContext.Provider>
   );
