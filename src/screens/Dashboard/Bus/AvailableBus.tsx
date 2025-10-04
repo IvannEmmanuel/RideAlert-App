@@ -61,6 +61,7 @@ const AvailableBus = () => {
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
+                    console.log("🚍 Incoming buses:", data);  // 👈 check if bound_for is there
                     setLocalBuses(data);    // ✅ update local state for this screen
                     setGlobalBuses(data);   // ✅ also sync to global context
                 } catch (err) {
@@ -111,6 +112,13 @@ const AvailableBus = () => {
                                     <Text style={availableBusStyle.labelText}>Route</Text>
                                     <Text style={availableBusStyle.valueText}>{bus.route}</Text>
                                 </View>
+
+                                {/* ✅ Bound For */}
+                                <View style={availableBusStyle.rowContainer}>
+                                    <Text style={availableBusStyle.labelText}>Bound For</Text>
+                                    <Text style={availableBusStyle.valueText}>{bus.bound_for}</Text>
+                                </View>
+
                                 <View style={availableBusStyle.rowContainer}>
                                     <Text style={availableBusStyle.labelText}>Status</Text>
                                     <Text style={[
