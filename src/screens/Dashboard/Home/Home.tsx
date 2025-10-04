@@ -428,6 +428,7 @@ const HomeScreen: React.FC = () => {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         userId={user?.id}
+        fleetId={user?.fleet_id}
       />
 
       <Animated.View style={[homeStyles.searchContainer, getAnimatedStyle(animation)]}>
