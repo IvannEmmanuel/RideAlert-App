@@ -1,5 +1,3 @@
-//fleet_id ang kulang
-
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, Dimensions } from 'react-native';
 import Modal from 'react-native-modal';
@@ -27,7 +25,7 @@ const isRecentNotification = (createdAt) => {
   return diff >= 0 && diff < 10;
 };
 
-export const NotificationModal = ({ visible, onClose, userId }) => {
+export const NotificationModal = ({ visible, onClose, userId, fleetId }) => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const wsRef = useRef(null);
@@ -48,11 +46,11 @@ export const NotificationModal = ({ visible, onClose, userId }) => {
   }, [visible, userId]);
 
   const fetchInitialNotifications = async () => {
-    if (!userId) return;
-    
+    if (!userId || !fleetId) return;
+
     try {
       setIsLoading(true);
-      const raw = await fetchNotificationsByUser(userId);
+      const raw = await fetchNotificationsByUser(userId, fleetId);
       const formatted = raw.map((item) => ({
         id: item.id,
         message: item.message,
@@ -70,7 +68,7 @@ export const NotificationModal = ({ visible, onClose, userId }) => {
     if (!userId || wsRef.current) return;
 
     try {
-      const ws = new WebSocket(`${wsUrl}/${userId}/ws`);
+      const ws = new WebSocket(`${wsUrl}/${userId}/${fleetId}/ws`);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -81,12 +79,12 @@ export const NotificationModal = ({ visible, onClose, userId }) => {
         try {
           const newNotification = JSON.parse(event.data);
           console.log('New notification received:', newNotification);
-          
+
           setNotifications((prev) => {
             // Check if notification already exists
             const exists = prev.some((n) => n.id === newNotification.id);
             if (exists) return prev;
-            
+
             // Add new notification at the top
             return [
               {
