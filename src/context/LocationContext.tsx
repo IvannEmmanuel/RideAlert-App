@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { PermissionsAndroid } from "react-native";
 import RNGetLocation from "react-native-get-location";
+import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
 
 interface Location {
   latitude: number;
@@ -36,19 +37,35 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
   const lastLocationTimeRef = useRef(0);
   const lastGoodLocationRef = useRef<Location | null>(null);
 
+
+  const ensureLocationEnabled = async () => {
+    try {
+      await promptForEnableLocationIfNeeded({
+        interval: 10000,
+        fastInterval: 5000,
+      });
+      console.log("✅ Location services enabled");
+    } catch (err) {
+      console.log("❌ User refused to enable location", err);
+    }
+  };
+
   const requestLocationPermission = async (): Promise<boolean> => {
     try {
-      const granted = await PermissionsAndroid.request(
+      const granted = await PermissionsAndroid.requestMultiple([
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: "Location Permission",
-          message: "This app needs access to your location to track your position",
-          buttonNeutral: "Ask Me Later",
-          buttonNegative: "Cancel",
-          buttonPositive: "OK",
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+        PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+      ]);
+
+      const fineGranted =
+        granted[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
+        PermissionsAndroid.RESULTS.GRANTED;
+
+      const coarseGranted =
+        granted[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] ===
+        PermissionsAndroid.RESULTS.GRANTED;
+
+      return fineGranted || coarseGranted;
     } catch (err) {
       console.error("Permission error:", err);
       return false;
@@ -67,8 +84,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const pos = await RNGetLocation.getCurrentPosition({
         enableHighAccuracy: true,
-        timeout: 8000,
-        maximumAge: 30000,
+        timeout: 15000,
+        maximumAge: 10000,
       });
 
       const newLoc: Location = {
@@ -117,8 +134,12 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const init = async () => {
       const ok = await requestLocationPermission();
-      if (ok) startUpdates();
-      else setError("Location permission denied");
+      if (ok) {
+        await ensureLocationEnabled();   // 👈 Make sure GPS is ON
+        startUpdates();
+      } else {
+        setError("Location permission denied");
+      }
     };
     init();
     return stopUpdates;
