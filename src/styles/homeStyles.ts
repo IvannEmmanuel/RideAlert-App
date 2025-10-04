@@ -162,9 +162,9 @@ const homeStyles = StyleSheet.create({
     fontFamily: "Montserrat-Bold"
   },
   timeText: {
-    fontSize: 8, 
-    fontFamily: "Montserrat-Regular", 
-    width: width * 0.2, 
+    fontSize: 8,
+    fontFamily: "Montserrat-Regular",
+    width: width * 0.2,
     paddingHorizontal: 4
   },
   closeButton: {
@@ -174,6 +174,52 @@ const homeStyles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
+  expandedSearchContent: {
+    width: '100%',
+  },
+  collapsedSearchButton: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  searchIcon: {
+    alignSelf: 'center',
+  },
+  debugContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 8,
+    borderRadius: 5,
+  },
+  debugText: {
+    color: 'white',
+    fontSize: 10,
+    fontFamily: 'monospace',
+  },
+  trackingBadge: {
+    position: 'absolute',
+    top: 80,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(52, 152, 219, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  trackingIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+  },
+  trackingText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  }
 });
 
 export default homeStyles;
