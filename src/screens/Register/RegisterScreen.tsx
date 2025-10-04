@@ -271,7 +271,7 @@ const Register = () => {
                 placeholder="Email*"
                 style={styles.emailInput}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={setEmail} 
                 keyboardType="email-address"
                 autoCapitalize="none"
                 placeholderTextColor="#888" // Set a visible color
@@ -388,7 +388,7 @@ const Register = () => {
                   <Text style={styles.textLogin}>Log in</Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.orContainer}>
+              {/* <View style={styles.orContainer}>
                 <View style={styles.line} />
                 <Text style={styles.orText}>or</Text>
                 <View style={styles.line} />
@@ -406,7 +406,7 @@ const Register = () => {
                     style={styles.googleLogo}
                   />
                 </TouchableOpacity>
-              </View>
+              </View> */}
             </View>
           </ScrollView>
         </TouchableWithoutFeedback>
