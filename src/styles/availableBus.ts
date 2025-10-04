@@ -27,6 +27,7 @@ const availableBusStyle = StyleSheet.create({
         top: height * 0.03,
         justifyContent: 'center',
         marginBottom: height * 0.05,
+        marginRight: 10,
     },
     filterText: {
         fontFamily: 'Montserrat-Regular',
@@ -128,6 +129,20 @@ const availableBusStyle = StyleSheet.create({
         textAlign: 'center',
         fontFamily: 'Montserrat-Bold',
         fontSize: 16,
+    },
+    filterButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginHorizontal: 4,
+        backgroundColor: '#e0e0e0',
+    },
+    activeFilterButton: {
+        backgroundColor: '#007bff',
+    },
+    activeFilterText: {
+        color: '#fff',
+        fontWeight: 'bold',
     },
 });
 

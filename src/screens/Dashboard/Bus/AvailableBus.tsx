@@ -17,6 +17,7 @@ const AvailableBus = () => {
     const [buses, setLocalBuses] = useState<any[]>([]); // ✅ local state
     const slideAnim = useState(new Animated.Value(height))[0];
     const wsRef = useRef<WebSocket | null>(null);
+    const [filter, setFilter] = useState<'All' | 'IGPIT' | 'BUGO'>('All');
 
     const onPressBack = () => {
         navigation.navigate('Home');
@@ -87,6 +88,12 @@ const AvailableBus = () => {
         };
     }, []);
 
+    const filteredBuses = filter === 'All'
+        ? buses
+        : buses.filter(bus => bus.bound_for?.toUpperCase() === filter);
+
+
+
     return (
         <>
             <View style={availableBusStyle.container}>
@@ -99,13 +106,65 @@ const AvailableBus = () => {
                 </View>
 
 
-                <View style={availableBusStyle.filterContainer}>
-                    <Text style={availableBusStyle.filterText}>All</Text>
+                <View style={{ flexDirection: 'row' }}>
+                    {/* All */}
+                    <TouchableOpacity
+                        style={[
+                            availableBusStyle.filterContainer,
+                            filter === 'All' && availableBusStyle.activeFilterButton
+                        ]}
+                        onPress={() => setFilter('All')}
+                    >
+                        <Text
+                            style={[
+                                availableBusStyle.filterText,
+                                filter === 'All' && availableBusStyle.activeFilterText
+                            ]}
+                        >
+                            All
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Igpit */}
+                    <TouchableOpacity
+                        style={[
+                            availableBusStyle.filterContainer,
+                            filter === 'IGPIT' && availableBusStyle.activeFilterButton
+                        ]}
+                        onPress={() => setFilter('IGPIT')}
+                    >
+                        <Text
+                            style={[
+                                availableBusStyle.filterText,
+                                filter === 'IGPIT' && availableBusStyle.activeFilterText
+                            ]}
+                        >
+                            Igpit
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Bugo */}
+                    <TouchableOpacity
+                        style={[
+                            availableBusStyle.filterContainer,
+                            filter === 'BUGO' && availableBusStyle.activeFilterButton
+                        ]}
+                        onPress={() => setFilter('BUGO')}
+                    >
+                        <Text
+                            style={[
+                                availableBusStyle.filterText,
+                                filter === 'BUGO' && availableBusStyle.activeFilterText
+                            ]}
+                        >
+                            Bugo
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
 
                 <View style={availableBusStyle.bussesRow}>
-                    {buses.map((bus, index) => (
+                    {filteredBuses.map((bus, index) => (
                         <View key={bus.id || index} style={availableBusStyle.busRow}>
                             <View style={availableBusStyle.busContainer}>
                                 <View style={availableBusStyle.rowContainer}>
