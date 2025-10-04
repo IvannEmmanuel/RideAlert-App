@@ -389,7 +389,7 @@ const HomeScreen: React.FC = () => {
             <Marker coordinate={location} title="You are here">
               <Image
                 source={require('../../../assets/user.png')}
-                style={{ width: 30, height: 30 }}
+                style={{ width: 35, height: 35 }}
                 resizeMode="contain"
               />
             </Marker>
@@ -403,10 +403,11 @@ const HomeScreen: React.FC = () => {
                 longitude: currentBusLocation.longitude,
               }}
               title={selectedBus.route}
+              description={`Bound For: ${selectedBus.bound_for || "Not available"}`}
             >
               <Image
                 source={require('../../../assets/bus.png')}
-                style={{ width: 30, height: 30 }}
+                style={{ width: 35, height: 35 }}
                 resizeMode="contain"
               />
             </Marker>
