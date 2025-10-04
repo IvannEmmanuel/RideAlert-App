@@ -19,6 +19,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const Register = () => {
   const navigation = useNavigation();
@@ -40,6 +41,7 @@ const Register = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState('');
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
 
   const loginPress = () => {
     console.log("Navigating to Login screen");
@@ -131,18 +133,18 @@ const Register = () => {
   };
 
   useEffect(() => {
-    const ws = new WebSocket(`${WS_BASE_URL}/fleets/ws/all`);
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.fleets) {
-        setCompanies(data.fleets);
+    const fetchCompanies = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/fleets/all`);
+        if (response.data.fleets) {
+          setCompanies(response.data.fleets);
+        }
+      } catch (err) {
+        console.error("Error fetching companies:", err);
       }
     };
 
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-
-    return () => ws.close();
+    fetchCompanies();
   }, []);
 
   useEffect(() => {
@@ -227,32 +229,35 @@ const Register = () => {
                 onChangeText={setLastName}
                 placeholderTextColor="#888" // Set a visible color
               />
-              <View style={{
-                borderWidth: 1,
-                borderColor: '#000',
-                borderRadius: 10,
-                overflow: 'hidden',
-                marginBottom: 20,
-              }}>
-                <Picker
-                  selectedValue={selectedCompany}
-                  onValueChange={(itemValue) => setSelectedCompany(itemValue)}
+              <View style={{ marginBottom: 20 }}>
+                <Dropdown
                   style={{
                     height: 50,
-                    width: '100%',
-                    color: '#000',
+                    borderColor: '#000',
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    paddingHorizontal: 10,
                     backgroundColor: '#fff'
                   }}
-                >
-                  <Picker.Item label="-- Choose a company --" value="" />
-                  {companies.map((company) => (
-                    <Picker.Item
-                      key={company.id}
-                      label={company.company_name}
-                      value={company.id}
-                    />
-                  ))}
-                </Picker>
+                  placeholderStyle={{ color: '#888' }}
+                  selectedTextStyle={{ color: '#000' }}
+                  inputSearchStyle={{ color: '#000' }}
+                  iconStyle={{ width: 20, height: 20 }}
+                  data={companies.map((company) => ({
+                    label: company.company_name,
+                    value: company.id,
+                  }))}
+                  search
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="-- Choose a company --"
+                  searchPlaceholder="Search..."
+                  value={selectedCompany}
+                  onChange={item => {
+                    setSelectedCompany(item.value);
+                  }}
+                />
               </View>
               <TextInput
                 placeholder="Address*"
