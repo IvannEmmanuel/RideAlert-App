@@ -255,9 +255,9 @@ const HomeScreen: React.FC = () => {
 
   // Location sending to backend (direct, no debounce)
   useEffect(() => {
-    console.log('🔍 Location effect triggered:', { 
-      hasLocation: !!location, 
-      location: location, 
+    console.log('🔍 Location effect triggered:', {
+      hasLocation: !!location,
+      location: location,
       hasToken: !!token,
       timestamp: new Date().toISOString()
     });
@@ -386,7 +386,13 @@ const HomeScreen: React.FC = () => {
           followsUserLocation
         >
           {location && (
-            <Marker coordinate={location} title="You are here" pinColor="blue" />
+            <Marker coordinate={location} title="You are here">
+              <Image
+                source={require('../../../assets/user.png')}
+                style={{ width: 30, height: 30 }}
+                resizeMode="contain"
+              />
+            </Marker>
           )}
 
           {selectedBus && currentBusLocation && (
@@ -397,9 +403,13 @@ const HomeScreen: React.FC = () => {
                 longitude: currentBusLocation.longitude,
               }}
               title={selectedBus.route}
-              description={`Seats: ${selectedBus.available_seats}`}
-              pinColor="red"
-            />
+            >
+              <Image
+                source={require('../../../assets/bus.png')}
+                style={{ width: 30, height: 30 }}
+                resizeMode="contain"
+              />
+            </Marker>
           )}
 
           {routeCoordinates.length > 0 && (
