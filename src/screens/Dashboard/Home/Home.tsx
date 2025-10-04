@@ -210,6 +210,7 @@
 
 // export default HomeScreen;
 
+// HomeScreen.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Image, Animated, Vibration } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
@@ -232,6 +233,23 @@ interface User {
   fleet_id?: string;
 }
 
+// Custom debounce hook
+const useDebounce = (value: any, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -240,6 +258,7 @@ const HomeScreen: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [lastSentTime, setLastSentTime] = useState<number>(0);
 
   const mapRef = useRef<MapView>(null);
   const animation = useRef(new Animated.Value(0)).current;
@@ -253,26 +272,43 @@ const HomeScreen: React.FC = () => {
     routeCoordinates, setRouteCoordinates
   } = useBus();
 
-  // Location sending to backend (direct, no debounce)
+  // Debounce location updates - ONLY send every 7 seconds
+  const debouncedLocation = useDebounce(location, 7000);
+
+  // Location sending to backend with 7-second debouncing
   useEffect(() => {
     console.log('🔍 Location effect triggered:', {
-      hasLocation: !!location,
-      location: location,
+      hasLocation: !!debouncedLocation,
+      location: debouncedLocation,
       hasToken: !!token,
       timestamp: new Date().toISOString()
     });
 
-    if (!location || !token) {
+    if (!debouncedLocation || !token) {
       console.log('⏭️ Skipping send: missing location or token');
       return;
     }
 
-    console.log('📤 Sending location:', { lat: location.latitude, lng: location.longitude });
-    sendLocationToBackend(location.latitude, location.longitude, token)
-      .then(() => console.log('✅ Location sent to backend'))
-      .catch(err => console.error('❌ Failed to send location', err));
-  }, [location?.latitude, location?.longitude, token]);
+    // Additional safety check - only send if 7 seconds have passed
+    const now = Date.now();
+    if (now - lastSentTime < 7000) {
+      console.log('⏰ Additional cooldown active, skipping send');
+      return;
+    }
 
+    console.log('📤 Sending location (7s debounce):', {
+      lat: debouncedLocation.latitude,
+      lng: debouncedLocation.longitude
+    });
+
+    setLastSentTime(now);
+
+    sendLocationToBackend(debouncedLocation.latitude, debouncedLocation.longitude, token)
+      .then(() => console.log('✅ Location sent to backend (7s debounce)'))
+      .catch(err => console.error('❌ Failed to send location', err));
+  }, [debouncedLocation, token]);
+
+  // Update current bus location when buses or selected bus changes
   useEffect(() => {
     if (selectedBus && buses.length > 0) {
       const updatedBus = buses.find(b => b.id === selectedBus.id);
@@ -282,6 +318,7 @@ const HomeScreen: React.FC = () => {
     }
   }, [buses, selectedBus?.id]);
 
+  // Fetch route coordinates when bus location or user location changes
   useEffect(() => {
     const fetchRoute = async () => {
       if (currentBusLocation && location) {
@@ -298,38 +335,60 @@ const HomeScreen: React.FC = () => {
 
   // WebSocket connection for real-time bus updates
   useEffect(() => {
-    if (!user?.fleet_id) return;
+    if (!user?.fleet_id) {
+      console.log('⏭️ No fleet_id available, skipping WebSocket connection');
+      return;
+    }
 
     const wsUrl = `wss://${BASE_URL}/ws/vehicles/available/${user.fleet_id}`;
     const ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => console.log("Connected to WS for fleet", user.fleet_id);
+    ws.onopen = () => {
+      console.log("✅ Connected to WebSocket for fleet:", user.fleet_id);
+    };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("Available vehicles:", data);
-        setBuses(data); // This will trigger the useEffect that updates currentBusLocation
+        console.log("🚌 Available vehicles received:", data.length);
+        setBuses(data);
       } catch (err) {
-        console.log("WS parse error:", err);
+        console.log("❌ WebSocket parse error:", err);
       }
     };
 
-    ws.onerror = (err) => console.log("WS error:", err);
-    ws.onclose = () => console.log("WS closed");
+    ws.onerror = (err) => {
+      console.log("❌ WebSocket error:", err);
+    };
 
-    return () => ws.close();
+    ws.onclose = () => {
+      console.log("🔴 WebSocket connection closed");
+    };
+
+    return () => {
+      console.log("🧹 Cleaning up WebSocket connection");
+      ws.close();
+    };
   }, [user?.fleet_id]);
 
-  // Fetch user data
+  // Fetch user data on component mount
   const fetchUserData = async () => {
-    const [t, u] = await Promise.all([getToken(), getUser()]);
-    setToken(t);
-    setUser(u);
-    console.log('👤 User loaded:', { id: u?.id, fleet_id: u?.fleet_id, hasToken: !!t });
+    try {
+      const [t, u] = await Promise.all([getToken(), getUser()]);
+      setToken(t);
+      setUser(u);
+      console.log('👤 User data loaded:', {
+        id: u?.id,
+        name: u?.first_name,
+        fleet_id: u?.fleet_id,
+        hasToken: !!t
+      });
+    } catch (error) {
+      console.error('❌ Failed to fetch user data:', error);
+    }
   };
 
-  // Handle navigation and UI interactions
+  // Handle search panel expansion
   const handleSearchPress = () => {
     Animated.timing(animation, {
       toValue: 1,
@@ -339,6 +398,7 @@ const HomeScreen: React.FC = () => {
     setIsSearchExpanded(true);
   };
 
+  // Handle search panel collapse
   const handleCloseSearch = () => {
     Animated.timing(animation, {
       toValue: 0,
@@ -353,71 +413,91 @@ const HomeScreen: React.FC = () => {
     fetchUserData();
   }, []);
 
+  // Handle location errors
+  useEffect(() => {
+    if (error) {
+      console.error('📍 Location error:', error);
+    }
+  }, [error]);
+
   return (
     <View style={homeStyles.container}>
+      {/* Top Header Section */}
       <View style={homeStyles.topContainer}>
         <View style={homeStyles.subTopContainer}>
           <View style={homeStyles.profileContainer}>
             <Text style={homeStyles.profileText}>
-              {user?.first_name?.charAt(0)?.toUpperCase() || ''}
+              {user?.first_name?.charAt(0)?.toUpperCase() || 'U'}
             </Text>
           </View>
           <View style={homeStyles.informationContainer}>
             <Text style={homeStyles.goodmorningText}>{getGreeting()}</Text>
-            <Text style={homeStyles.userText}>{user?.first_name}</Text>
+            <Text style={homeStyles.userText}>{user?.first_name || 'User'}</Text>
           </View>
           <View style={homeStyles.settingContainer}>
             <TouchableOpacity onPress={() => setModalVisible(true)}>
-              <Image source={require('../../../images/notification.png')} style={homeStyles.notification} />
+              <Image
+                source={require('../../../images/notification.png')}
+                style={homeStyles.notification}
+              />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-              <Image source={require('../../../images/settings.png')} style={homeStyles.settings} />
+              <Image
+                source={require('../../../images/settings.png')}
+                style={homeStyles.settings}
+              />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
+      {/* Map Section */}
       <View style={homeStyles.mapContainer}>
         <MapView
           ref={mapRef}
           style={homeStyles.map}
           initialRegion={DEFAULT_REGION}
-          showsUserLocation
-          followsUserLocation
+          showsUserLocation={true}
+          followsUserLocation={false}
+          showsMyLocationButton={true}
         >
+          {/* User Location Marker */}
           {location && (
             <Marker
               coordinate={location}
               title="You are here"
-              image={require('../../../assets/user.png')} // ✅ no opacity issue
+              description="Your current location"
+              image={require('../../../assets/user.png')}
             />
           )}
 
+          {/* Selected Bus Marker */}
           {selectedBus && currentBusLocation && (
             <Marker
-              key={`${selectedBus.id}-${currentBusLocation.latitude}-${currentBusLocation.longitude}`}
+              key={`bus-${selectedBus.id}-${currentBusLocation.latitude}-${currentBusLocation.longitude}`}
               coordinate={{
                 latitude: currentBusLocation.latitude,
                 longitude: currentBusLocation.longitude,
               }}
-              title={selectedBus.route}
+              title={selectedBus.route || 'Bus'}
               description={`Bound For: ${selectedBus.bound_for || "Not available"}`}
-            
-              image={require('../../../assets/bus.png')} // ✅ no opacity issue
+              image={require('../../../assets/bus.png')}
             />
           )}
 
+          {/* Route Polyline */}
           {routeCoordinates.length > 0 && (
             <Polyline
               coordinates={routeCoordinates}
-              strokeColor="#ffffffff"
-              strokeWidth={3}
+              strokeColor="#3498db"
+              strokeWidth={4}
               lineDashPattern={[0]}
             />
           )}
         </MapView>
       </View>
 
+      {/* Notification Modal */}
       <NotificationModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -425,9 +505,10 @@ const HomeScreen: React.FC = () => {
         fleetId={user?.fleet_id}
       />
 
+      {/* Search Panel */}
       <Animated.View style={[homeStyles.searchContainer, getAnimatedStyle(animation)]}>
         {isSearchExpanded ? (
-          <View>
+          <View style={homeStyles.expandedSearchContent}>
             <View style={homeStyles.subSearchContainer}>
               <TouchableOpacity onPress={handleCloseSearch}>
                 <View style={homeStyles.stroke} />
@@ -445,8 +526,14 @@ const HomeScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity onPress={handleSearchPress} style={{ flex: 1, justifyContent: 'center' }}>
-            <Image source={require('../../../images/search.png')} style={{ alignSelf: 'center' }} />
+          <TouchableOpacity
+            onPress={handleSearchPress}
+            style={homeStyles.collapsedSearchButton}
+          >
+            <Image
+              source={require('../../../images/search.png')}
+              style={homeStyles.searchIcon}
+            />
           </TouchableOpacity>
         )}
       </Animated.View>
