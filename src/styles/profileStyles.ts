@@ -1,100 +1,122 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions } from "react-native";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const profileStyles = StyleSheet.create({
   container: {
-    top: height * 0.05,
-    paddingVertical: width * 0.01,
-    width: width * 1,
-    height: height * 0.25,
-    borderBottomRightRadius: 45,
-    borderBottomLeftRadius: 45,
-    paddingHorizontal: width * 0.04,
+    paddingTop: height * 0.05,
+    paddingHorizontal: width * 0.05,
+    paddingBottom: height * 0.06,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
   },
-  mainProfileContainer: {
-    flexDirection: 'row'
+
+  backButton: {
+    marginBottom: height * 0.02,
   },
-  profileContainer: {
-    top: height * 0.01,
-    height: 70,
-    width: 70,
-    borderRadius: 100,
-    backgroundColor: '#464646ff',
-    justifyContent: 'center',
-    alignItems: 'center',
+
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  profileText: {
-    color: '#fff',
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
+
+  profileCircle: {
+    height: 80,
+    width: 80,
+    borderRadius: 40,
+    backgroundColor: "#464646ff",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  subTopHeader: {
-    justifyContent: 'center',
-    paddingHorizontal: width * 0.04
+
+  profileInitial: {
+    color: "#fff",
+    fontSize: 28,
+    fontFamily: "Inter-Bold",
   },
+
+  userInfo: {
+    marginLeft: width * 0.05,
+  },
+
   fullNameText: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 22
+    fontFamily: "Montserrat-Bold",
+    fontSize: 22,
+    color: "#000",
   },
+
   emailText: {
-    fontFamily: 'Montserrat-Regular',
+    fontFamily: "Montserrat-Regular",
     fontSize: 14,
-    bottom: height * 0.004
+    color: "#444",
+    marginTop: 4,
   },
-  personalText: {
-    fontFamily: 'Montserrat-Bold',
+
+  sectionTitle: {
+    fontFamily: "Montserrat-Bold",
     fontSize: 18,
-    bottom: height * 0.05
+    color: "#222",
+    marginTop: height * 0.03,
   },
-  informationContainer: {
+
+  infoCard: {
     backgroundColor: "#FFFFFF",
     width: width * 0.9,
-    height: height * 0.330,
-    alignSelf: 'center',
-    borderRadius: 10,
-    flexDirection: 'column',
-    justifyContent: 'center'
+    alignSelf: "center",
+    borderRadius: 12,
+    marginTop: height * 0.03,
+    paddingVertical: height * 0.025,
+    paddingHorizontal: width * 0.05,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
-  subFirstInformationContainer: {
-    paddingHorizontal: width * 0.040,
+
+  infoRow: {
+    marginBottom: height * 0.015,
   },
-  subInformationContainer: {
-    paddingHorizontal: width * 0.040,
-    marginTop: height * 0.02
+
+  infoLabel: {
+    fontFamily: "Montserrat-Bold",
+    fontSize: 15,
+    color: "#333",
   },
+
+  infoValue: {
+    fontFamily: "Montserrat-Regular",
+    fontSize: 15,
+    color: "#555",
+    marginTop: 2,
+  },
+
   accountContainer: {
-    paddingHorizontal: width * 0.050, 
-    top: height * 0.02 
+    marginTop: height * 0.04,
+    paddingHorizontal: width * 0.05,
   },
-  accountText: { 
-    fontFamily: 'Montserrat-Bold', 
-    fontSize: 16 
+
+  accountTitle: {
+    fontFamily: "Montserrat-Bold",
+    fontSize: 17,
+    color: "#000",
   },
-  logoutContainer: { 
-    backgroundColor: '#f34747ff', 
-    width: width * 0.9, 
-    height: height * 0.05, 
-    borderRadius: 10, 
-    justifyContent: 'center', 
-    marginTop: height * 0.02 
+
+  logoutButton: {
+    backgroundColor: "#f34747ff",
+    width: width * 0.9,
+    height: height * 0.06,
+    alignSelf: "center",
+    borderRadius: 12,
+    justifyContent: "center",
+    marginTop: height * 0.02,
   },
+
   logoutText: {
-    textAlign: 'center', 
-    color: '#FFFFFF', 
-    fontSize: 18
+    textAlign: "center",
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontFamily: "Montserrat-SemiBold",
   },
-  textLabel: { 
-    fontFamily: 'Montserrat-Bold', 
-    fontSize: 16 
-  },
-  textValue: { 
-    fontFamily: 'Montserrat-Regular', 
-    fontSize: 16 
-  }
 });
 
 export default profileStyles;
