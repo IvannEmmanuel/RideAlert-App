@@ -6,6 +6,7 @@ import {
   Image,
   Alert,
   BackHandler,
+  ActivityIndicator
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { loginStyles as styles } from "../../styles/loginStyles";
@@ -23,6 +24,7 @@ const LoginNew = () => {
   const [errorMessage, setErrorMessage] = useState("");
 
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = () => {
     navigation.navigate("Register");
@@ -53,10 +55,13 @@ const LoginNew = () => {
   };
 
   const handleLogin = async () => {
-    setErrorMessage(""); // reset old error first
+    if (loading) return;
+    setLoading(true)
+    setErrorMessage("");
 
     if (!email || !password) {
       setErrorMessage("Email and password are required.");
+      setLoading(false);
       return;
     }
 
@@ -66,16 +71,15 @@ const LoginNew = () => {
         password,
       });
 
-      const access_token = response.data.access_token;
-      const user = response.data.user;
+      const { access_token, refresh_token, user } = response.data;
 
       await AsyncStorage.setItem("access_token", access_token);
+      await AsyncStorage.setItem("refresh_token", refresh_token);
       await AsyncStorage.setItem("user", JSON.stringify(user));
 
       console.log("Login successful, token:", access_token);
       console.log("User data:", user);
 
-      // 🔥 Fetch and sync FCM token
       try {
         const messaging = getMessaging(getApp());
         const fcmToken = await messaging.getToken();
@@ -88,7 +92,7 @@ const LoginNew = () => {
         console.error("Error fetching/saving FCM token:", err);
       }
 
-      navigation.navigate("Home"); //Panel
+      navigation.navigate("Home");
     } catch (error) {
       console.log("Login failed:", error);
 
@@ -103,6 +107,8 @@ const LoginNew = () => {
       } else {
         setErrorMessage("Unable to connect. Check your internet connection.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,7 +125,7 @@ const LoginNew = () => {
           value={email}
           onChangeText={setEmail}
           style={styles.emailInput}
-          placeholderTextColor="#888" // Set a visible color
+          placeholderTextColor="#888"
         />
         <View style={styles.passwordContainer}>
           <TextInput
@@ -128,7 +134,7 @@ const LoginNew = () => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordVisible}
-            placeholderTextColor="#888" // Set a visible color
+            placeholderTextColor="#888"
           />
           <TouchableOpacity
             style={styles.emojiContainer}
@@ -150,10 +156,14 @@ const LoginNew = () => {
           </View>
         ) : null}
         <TouchableOpacity
-          style={styles.continueContainer}
+          style={[styles.continueContainer, loading && { opacity: 0.6 }]}
           onPress={handleLogin}
-        >
+          disabled={loading}
+        > {loading ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
           <Text style={styles.continueText}>Continue</Text>
+        )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.forgotContainer}>
           <Text style={styles.forgotText}>Forgot password?</Text>
