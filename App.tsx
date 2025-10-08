@@ -10,6 +10,7 @@ import {
 import PushNotification from "react-native-push-notification";
 import { LocationProvider } from "./src/context/LocationContext";
 import { BusProvider } from "./src/context/BusContext";
+import { AuthProvider } from "./src/context/AuthContext";
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -85,11 +86,13 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <BusProvider>
-      <LocationProvider>
-        <AppNavigator />
-      </LocationProvider>
-    </BusProvider>
+    <AuthProvider>
+      <BusProvider>
+        <LocationProvider>
+          <AppNavigator />
+        </LocationProvider>
+      </BusProvider>
+    </AuthProvider>
   );
 };
 
