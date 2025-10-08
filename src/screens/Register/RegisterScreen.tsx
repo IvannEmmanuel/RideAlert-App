@@ -1,4 +1,4 @@
-import { BASE_URL } from '../../config/apiConfig';
+import { BASE_URL, WS_BASE_URL } from '../../config/apiConfig';
 import { registerStyles as styles } from "../../styles/registerStyles";
 import {
   Text,
@@ -14,11 +14,13 @@ import {
   Keyboard,
   Pressable,
   BackHandler,
+  ActivityIndicator
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const Register = () => {
   const navigation = useNavigation();
@@ -40,6 +42,15 @@ const Register = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState('');
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [companyError, setCompanyError] = useState(false); // New state for company validation
+  const [emailError, setEmailError] = useState(false); // Add this state
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|yahoo)\.com$/;
+    return emailRegex.test(email);
+  };
 
   const loginPress = () => {
     console.log("Navigating to Login screen");
@@ -47,6 +58,10 @@ const Register = () => {
   };
 
   const register = async (firstName, lastName, email, password, address, gender, fleet_id) => {
+    if (loading) return;
+    setLoading(true);
+    setErrorMessage("");
+
     try {
       const response = await axios.post(`${BASE_URL}/users/register`, {
         first_name: firstName,
@@ -63,6 +78,8 @@ const Register = () => {
       const message = error.response?.data?.message || "An unexpected error occurred.";
       console.error("Registration API error:", message);
       throw new Error(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,13 +94,36 @@ const Register = () => {
     }
   }, [password, confirmPassword]);
 
-  const handleContinue = async () => {
+  // Reset company error when user selects a company
+  useEffect(() => {
+    if (selectedCompany) {
+      setCompanyError(false);
+    }
+  }, [selectedCompany]);
+
+  const handleRegister = async () => {
     setErrorMessage("");
     setShowError(false);
+    setCompanyError(false);
+    setEmailError(false); // Reset email error
 
-    if (!firstName || !lastName || !email || !password || !confirmPassword || !address || !isChecked) {
+    // Validate all required fields including company
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !address || !isChecked || !gender || !selectedCompany) {
       setErrorMessage("Please fill out all required fields");
       setShowError(true);
+
+      // Specifically highlight company field if not selected
+      if (!selectedCompany) {
+        setCompanyError(true);
+      }
+      return;
+    }
+
+    // Add email validation check
+    if (!validateEmail(email)) {
+      setErrorMessage("Please use a valid @gmail.com or @yahoo.com email address");
+      setShowError(true);
+      setEmailError(true);
       return;
     }
 
@@ -101,12 +141,6 @@ const Register = () => {
 
     if (!isChecked) {
       setErrorMessage("Please accept the terms and conditions");
-      setShowError(true);
-      return;
-    }
-
-    if (!gender) {
-      setErrorMessage("Please select a gender");
       setShowError(true);
       return;
     }
@@ -134,9 +168,13 @@ const Register = () => {
     const fetchCompanies = async () => {
       try {
         const response = await axios.get(`${BASE_URL}/fleets/all`);
-        setCompanies(response.data);
-      } catch (error) {
-        console.error("Error fetching companies:", error.message);
+        if (response.data.fleets) {
+          setCompanies(response.data.fleets);
+        }
+      } catch (err) {
+        console.error("Error fetching companies:", err);
+      } finally {
+        setLoadingCompanies(false);
       }
     };
 
@@ -216,58 +254,77 @@ const Register = () => {
                 style={styles.firstNameInput}
                 value={firstName}
                 onChangeText={setFirstName}
-                placeholderTextColor="#888" // Set a visible color
+                placeholderTextColor="#888"
               />
               <TextInput
                 placeholder="Last Name*"
                 style={styles.lastNameInput}
                 value={lastName}
                 onChangeText={setLastName}
-                placeholderTextColor="#888" // Set a visible color
+                placeholderTextColor="#888"
               />
-              <View style={{
-                borderWidth: 1,
-                borderColor: '#000',
-                borderRadius: 10,
-                overflow: 'hidden',
-                marginBottom: 20,
-              }}>
-                <Picker
-                  selectedValue={selectedCompany}
-                  onValueChange={(itemValue) => setSelectedCompany(itemValue)}
-                  style={{
-                    height: 50,
-                    width: '100%',
-                    color: '#000',
-                    backgroundColor: '#fff'
+
+              {/* Company Dropdown with Validation */}
+              <View style={{ marginBottom: 20 }}>
+                <Dropdown
+                  style={[
+                    {
+                      height: 50,
+                      borderColor: companyError ? '#ff0000' : '#000',
+                      borderWidth: companyError ? 2 : 1,
+                      borderRadius: 10,
+                      paddingHorizontal: 10,
+                      backgroundColor: '#fff'
+                    },
+                    companyError && styles.inputError
+                  ]}
+                  placeholderStyle={{ color: '#888' }}
+                  selectedTextStyle={{ color: '#000' }}
+                  inputSearchStyle={{ color: '#000' }}
+                  iconStyle={{ width: 20, height: 20 }}
+                  data={companies.map((company) => ({
+                    label: company.company_name,
+                    value: company.id,
+                  }))}
+                  search
+                  maxHeight={300}
+                  labelField="label"
+                  valueField="value"
+                  placeholder="-- Choose a company --"
+                  searchPlaceholder="Search..."
+                  value={selectedCompany}
+                  onChange={item => {
+                    setSelectedCompany(item.value);
+                    setCompanyError(false);
                   }}
-                >
-                  <Picker.Item label="-- Choose a company --" value="" />
-                  {companies.map((company) => (
-                    <Picker.Item
-                      key={company.id}
-                      label={company.company_name}
-                      value={company.id}
-                    />
-                  ))}
-                </Picker>
+                />
+                {companyError && (
+                  <Text style={styles.errorText}>Please select a company</Text>
+                )}
               </View>
+
               <TextInput
                 placeholder="Address*"
                 style={styles.addressInput}
                 value={address}
                 onChangeText={setAddress}
                 autoCapitalize="none"
-                placeholderTextColor="#888" // Set a visible color
+                placeholderTextColor="#888"
               />
               <TextInput
                 placeholder="Email*"
-                style={styles.emailInput}
+                style={[
+                  styles.emailInput,
+                  emailError && styles.inputError // Add this line
+                ]}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setEmailError(false); // Clear error when user types
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                placeholderTextColor="#888" // Set a visible color
+                placeholderTextColor="#888"
               />
               <View style={styles.passwordContainer}>
                 <TextInput
@@ -280,7 +337,7 @@ const Register = () => {
                   value={password}
                   onChangeText={setPassword}
                   onFocus={() => setShowPasswordRequirements(true)}
-                  placeholderTextColor="#888" // Set a visible color
+                  placeholderTextColor="#888"
                 />
                 <TouchableOpacity
                   style={styles.emojiContainer}
@@ -319,7 +376,7 @@ const Register = () => {
                   secureTextEntry={!confirmPasswordVisible}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  placeholderTextColor="#888" // Set a visible color
+                  placeholderTextColor="#888"
                 />
                 <TouchableOpacity
                   style={styles.emojiContainer}
@@ -339,6 +396,7 @@ const Register = () => {
               {!passwordsMatch && confirmPassword.length > 0 && (
                 <Text style={styles.errorText}>Passwords do not match</Text>
               )}
+
               <View style={styles.genderContainer}>
                 <Text style={styles.genderTitle}>Gender*</Text>
                 <View style={styles.genderOptions}>
@@ -356,6 +414,7 @@ const Register = () => {
                   />
                 </View>
               </View>
+
               <View style={styles.conditionContainer}>
                 <Pressable
                   style={[styles.checkbox, isChecked && styles.checked]}
@@ -367,37 +426,25 @@ const Register = () => {
                   By continuing, you agree to the terms & conditions and acknowledge the privacy policy.
                 </Text>
               </View>
+
               <View>
                 <TouchableOpacity
-                  style={styles.continueContainer}
-                  onPress={handleContinue}
+                  style={[styles.continueContainer, loading && { opacity: 0.6 }]}
+                  onPress={handleRegister}
+                  disabled={loading}
                 >
-                  <Text style={styles.continueText}>Continue</Text>
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.continueText}>Register</Text>
+                  )}
                 </TouchableOpacity>
               </View>
+
               <View style={styles.loginContainer}>
                 <Text style={styles.accountText}>Already have an account? </Text>
                 <TouchableOpacity onPress={loginPress}>
                   <Text style={styles.textLogin}>Log in</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.orContainer}>
-                <View style={styles.line} />
-                <Text style={styles.orText}>or</Text>
-                <View style={styles.line} />
-              </View>
-              <View style={styles.socialLoginContainer}>
-                <TouchableOpacity style={styles.facebookContainer}>
-                  <Image
-                    source={require("../../images/facebook.png")}
-                    style={styles.facebookLogo}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity>
-                  <Image
-                    source={require("../../images/google.png")}
-                    style={styles.googleLogo}
-                  />
                 </TouchableOpacity>
               </View>
             </View>

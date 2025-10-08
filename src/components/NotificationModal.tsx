@@ -1,5 +1,3 @@
-//fleet_id ang kulang
-
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, Dimensions } from 'react-native';
 import Modal from 'react-native-modal';
@@ -9,55 +7,56 @@ import { wsUrl } from '../config/apiConfig';
 
 const { height } = Dimensions.get('window');
 
+// Format time for display
 const formatTimeOnly = (date) => {
   const localDate = new Date(date);
   return localDate.toLocaleTimeString('en-PH', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-    timeZone: 'Asia/Manila',
+    timeZone: 'Asia/Manila'
   });
 };
 
+// Check if notification is recent (e.g., within 10 minutes)
 const isRecentNotification = (createdAt) => {
   const now = new Date();
   const created = new Date(createdAt);
   if (isNaN(created.getTime())) return false;
-  const diff = (now.getTime() - created.getTime()) / 60000;
-  return diff >= 0 && diff < 10;
+
+  const diff = (now.getTime() - created.getTime()) / 60000; // difference in minutes
+  return diff >= 0 && diff < 10; // less than 10 minutes
 };
 
-export const NotificationModal = ({ visible, onClose, userId }) => {
+export const NotificationModal = ({ visible, onClose, userId, fleetId }) => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const wsRef = useRef(null);
 
-  // Fetch initial notifications when modal opens
   useEffect(() => {
-    if (visible && userId) {
+    if (visible && userId && fleetId) {
       fetchInitialNotifications();
       connectWebSocket();
-    } else if (!visible) {
+    } else {
       disconnectWebSocket();
     }
 
-    // Cleanup on unmount
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [visible, userId]);
+    return () => disconnectWebSocket();
+  }, [visible, userId, fleetId]);
 
+  // Fetch notifications from backend
   const fetchInitialNotifications = async () => {
-    if (!userId) return;
-    
     try {
       setIsLoading(true);
-      const raw = await fetchNotificationsByUser(userId);
+      const raw = await fetchNotificationsByUser(userId, fleetId);
+      console.log('Fetched notifications:', raw);
+
       const formatted = raw.map((item) => ({
-        id: item.id,
+        id: item.id || item._id, // support both Mongo _id and API id
         message: item.message,
         createdAt: new Date(item.createdAt),
       }));
+
       setNotifications(formatted);
     } catch (err) {
       console.error('Notification fetch error:', err);
@@ -66,55 +65,48 @@ export const NotificationModal = ({ visible, onClose, userId }) => {
     }
   };
 
+  // WebSocket connection for real-time updates
   const connectWebSocket = () => {
-    if (!userId || wsRef.current) return;
+    if (!userId || !fleetId || wsRef.current) return;
 
-    try {
-      const ws = new WebSocket(`${wsUrl}/${userId}/ws`);
-      wsRef.current = ws;
+    const ws = new WebSocket(`${wsUrl}/${userId}/${fleetId}/ws`);
+    wsRef.current = ws;
 
-      ws.onopen = () => {
-        console.log('NotificationModal WebSocket connected for user:', userId);
-      };
+    ws.onopen = () => console.log('WebSocket connected for user:', userId);
 
-      ws.onmessage = (event) => {
-        try {
-          const newNotification = JSON.parse(event.data);
-          console.log('New notification received:', newNotification);
-          
-          setNotifications((prev) => {
-            // Check if notification already exists
-            const exists = prev.some((n) => n.id === newNotification.id);
-            if (exists) return prev;
-            
-            // Add new notification at the top
-            return [
-              {
-                id: newNotification.id,
-                message: newNotification.message,
-                createdAt: new Date(newNotification.createdAt),
-              },
-              ...prev,
-            ];
-          });
-        } catch (err) {
-          console.error('WebSocket message parse error:', err);
-        }
-      };
+    ws.onmessage = (event) => {
+      try {
+        const newNotification = JSON.parse(event.data);
+        console.log('New notification received:', newNotification);
 
-      ws.onerror = (error) => {
-        console.error('NotificationModal WebSocket error:', error);
-      };
+        setNotifications((prev) => {
+          const exists = prev.some(
+            (n) => n.id === newNotification.id || n.id === newNotification._id
+          );
+          if (exists) return prev;
 
-      ws.onclose = (event) => {
-        console.log('NotificationModal WebSocket disconnected:', event.code, event.reason);
-        wsRef.current = null;
-      };
-    } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
-    }
+          return [
+            {
+              id: newNotification.id || newNotification._id,
+              message: newNotification.message,
+              createdAt: new Date(newNotification.createdAt),
+            },
+            ...prev,
+          ];
+        });
+      } catch (err) {
+        console.error('WebSocket message parse error:', err);
+      }
+    };
+
+    ws.onerror = (error) => console.error('WebSocket error:', error);
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      wsRef.current = null;
+    };
   };
 
+  // Disconnect WebSocket
   const disconnectWebSocket = () => {
     if (wsRef.current) {
       wsRef.current.close();
