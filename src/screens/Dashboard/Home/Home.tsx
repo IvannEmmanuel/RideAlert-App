@@ -481,7 +481,7 @@
 // export default HomeScreen;
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, AppState } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated, AppState, BackHandler } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -548,6 +548,13 @@ const HomeScreen: React.FC = () => {
   const tokenRef = useRef<string | null>(null);
   const userRef = useRef<any>(null);
   const selectedBusRef = useRef<any>(null);
+
+  useEffect (() => {
+    const backAction = () => true;
+    const backHandler = BackHandler.addEventListener(backAction);
+
+    return () => backHandler.remove();
+  }, [])
 
   // ---- CACHE helpers ----
   const cacheBusesDebounced = useCallback(async (data: any[]) => {
