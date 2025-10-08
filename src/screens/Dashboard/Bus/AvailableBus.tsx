@@ -8,7 +8,7 @@ import { getUser, getToken } from '../../../utils/authStorage';
 import { BASE_URL } from '../../../config/apiConfig';
 import { useBus } from '../../../context/BusContext';
 
-const { height } = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 
 const CACHE_KEY = 'cached_buses_data';
 const POLL_INTERVAL = 15000;
@@ -55,7 +55,7 @@ const AvailableBus = () => {
   const cacheBusesDataDebounced = useCallback(async (busesData: any[]) => {
     const now = Date.now();
     if (now - lastCacheTimeRef.current < CACHE_DEBOUNCE) return;
-    
+
     lastCacheTimeRef.current = now;
     try {
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(busesData));
@@ -90,7 +90,7 @@ const AvailableBus = () => {
     if (!fleetIdRef.current || !tokenRef.current || !isMountedRef.current) return null;
 
     try {
-      const response = await fetch(`https://${BASE_URL}/api/vehicles/available/${fleetIdRef.current}`, {
+      const response = await fetch(`${BASE_URL}/vehicles/available/${fleetIdRef.current}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${tokenRef.current}`,
@@ -114,7 +114,7 @@ const AvailableBus = () => {
   const startPolling = useCallback(() => {
     stopPolling();
     fetchBusesViaHTTP();
-    
+
     pollingIntervalRef.current = setInterval(() => {
       if (isMountedRef.current && appStateRef.current === 'active') {
         fetchBusesViaHTTP();
@@ -166,7 +166,7 @@ const AvailableBus = () => {
 
       ws.onmessage = (event) => {
         if (!isMountedRef.current) return;
-        
+
         try {
           const data = JSON.parse(event.data);
           setLocalBuses(data);
@@ -367,9 +367,12 @@ const AvailableBus = () => {
         <View style={availableBusStyle.bussesRow}>
           {filteredBuses.length === 0 ? (
             <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#666', fontSize: 16 }}>
-                No buses available at the moment
-              </Text>
+              <LottieView
+                source={require('../../../images/Loading.json')}
+                autoPlay
+                loop
+                style={{ width: width * 0.7, height: height * 0.7 }}
+              />
             </View>
           ) : (
             filteredBuses.map((bus, index) => (
