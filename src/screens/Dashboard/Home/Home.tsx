@@ -499,10 +499,14 @@ import { sendLocationToBackend } from './sendLocation';
 
 const CACHE_KEY = 'cached_buses_data';
 const SELECTED_BUS_KEY = 'selected_bus_data';
-const POLL_INTERVAL = 15000; // fallback polling interval
+const LOCATION_LOCK_KEY = 'location_send_lock';
+const LOCATION_MUTEX_KEY = 'location_send_mutex';
+const POLL_INTERVAL = 15000;
 const CACHE_DEBOUNCE_MS = 2000;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
+const LOCATION_SEND_INTERVAL = 7000;
+const MUTEX_TIMEOUT = 3000;
 
 const useDebounce = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -512,6 +516,68 @@ const useDebounce = (value: any, delay: number) => {
   }, [value, delay]);
   return debouncedValue;
 };
+
+// Global mutex implementation for location sending
+class LocationSendMutex {
+  private static instance: LocationSendMutex;
+  private isLocked: boolean = false;
+  private queue: Array<() => void> = [];
+
+  static getInstance(): LocationSendMutex {
+    if (!LocationSendMutex.instance) {
+      LocationSendMutex.instance = new LocationSendMutex();
+    }
+    return LocationSendMutex.instance;
+  }
+
+  async acquireLock(timeoutMs: number = MUTEX_TIMEOUT): Promise<boolean> {
+    return new Promise((resolve) => {
+      const attemptLock = async () => {
+        if (!this.isLocked) {
+          // Double-check with AsyncStorage to coordinate across all instances
+          try {
+            const mutexData = await AsyncStorage.getItem(LOCATION_MUTEX_KEY);
+            if (mutexData) {
+              const { timestamp } = JSON.parse(mutexData);
+              const now = Date.now();
+              // If mutex is stale (older than timeout), clear it
+              if (now - timestamp > timeoutMs) {
+                await AsyncStorage.removeItem(LOCATION_MUTEX_KEY);
+              } else {
+                // Mutex is held by another instance
+                resolve(false);
+                return;
+              }
+            }
+
+            // Acquire mutex
+            this.isLocked = true;
+            await AsyncStorage.setItem(LOCATION_MUTEX_KEY, JSON.stringify({ 
+              timestamp: Date.now() 
+            }));
+            resolve(true);
+          } catch (error) {
+            console.error('Mutex acquire error:', error);
+            resolve(false);
+          }
+        } else {
+          resolve(false);
+        }
+      };
+
+      attemptLock();
+    });
+  }
+
+  async releaseLock(): Promise<void> {
+    this.isLocked = false;
+    try {
+      await AsyncStorage.removeItem(LOCATION_MUTEX_KEY);
+    } catch (error) {
+      console.error('Mutex release error:', error);
+    }
+  }
+}
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -537,7 +603,6 @@ const HomeScreen: React.FC = () => {
 
   const debouncedLocation = useDebounce(location, 3000);
 
-  // internal refs to avoid stale closures / races
   const isMountedRef = useRef(true);
   const wsRef = useRef<any>(null);
   const pollingRef = useRef<any>(null);
@@ -548,13 +613,13 @@ const HomeScreen: React.FC = () => {
   const tokenRef = useRef<string | null>(null);
   const userRef = useRef<any>(null);
   const selectedBusRef = useRef<any>(null);
+  const locationSendMutex = useRef(LocationSendMutex.getInstance());
 
-  useEffect (() => {
+  useEffect(() => {
     const backAction = () => true;
-    const backHandler = BackHandler.addEventListener(backAction);
-
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => backHandler.remove();
-  }, [])
+  }, []);
 
   // ---- CACHE helpers ----
   const cacheBusesDebounced = useCallback(async (data: any[]) => {
@@ -563,7 +628,9 @@ const HomeScreen: React.FC = () => {
     lastCacheTimeRef.current = now;
     try {
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      console.error('Cache save error:', e);
+    }
   }, []);
 
   const cacheSelectedBus = useCallback(async (bus: any) => {
@@ -573,7 +640,9 @@ const HomeScreen: React.FC = () => {
       } else {
         await AsyncStorage.setItem(SELECTED_BUS_KEY, JSON.stringify(bus));
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      console.error('Cache selected bus error:', e);
+    }
   }, []);
 
   const loadCachedBuses = useCallback(async () => {
@@ -584,7 +653,9 @@ const HomeScreen: React.FC = () => {
         setBuses(parsed);
         return parsed;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      console.error('Load cached buses error:', e);
+    }
     return null;
   }, [setBuses]);
 
@@ -598,12 +669,15 @@ const HomeScreen: React.FC = () => {
         selectedBusRef.current = parsed;
         return parsed;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      console.error('Load cached selected bus error:', e);
+    }
     return null;
   }, [setSelectedBus, setCurrentBusLocation]);
 
-  // Keep selectedBusRef in sync
-  useEffect(() => { selectedBusRef.current = selectedBus; }, [selectedBus]);
+  useEffect(() => {
+    selectedBusRef.current = selectedBus;
+  }, [selectedBus]);
 
   // ---- persistent user/token load ----
   const fetchUserData = useCallback(async () => {
@@ -616,43 +690,22 @@ const HomeScreen: React.FC = () => {
       userRef.current = u;
       return { token: t, user: u };
     } catch (e) {
+      console.error('Fetch user data error:', e);
       return { token: null, user: null };
     }
   }, []);
 
-  // ---- HTTP fetch fallback ----
-  const fetchBusesHTTP = useCallback(async (fleetId?: string) => {
-    const fid = fleetId || userRef.current?.fleet_id || selectedBusRef.current?.fleet_id;
-    if (!fid) return null;
-    try {
-      const resp = await fetch(`${BASE_URL}/vehicles/available/${fid}`, {
-        method: 'GET',
-      });
-      if (!isMountedRef.current) return null;
-      if (resp.ok) {
-        const data = await resp.json();
-        setBuses(data);
-        cacheBusesDebounced(data);
-        return data;
-      }
-    } catch (e) { /* ignore */ }
-    return null;
-  }, [cacheBusesDebounced, setBuses]);
 
   // ---- polling control ----
   const startPolling = useCallback((fleetId?: string) => {
-    // prevent multiple polls
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
-    // kick one immediate fetch
-    fetchBusesHTTP(fleetId);
     pollingRef.current = setInterval(() => {
       if (!isMountedRef.current) return;
-      if (appStateRef.current === 'active') fetchBusesHTTP(fleetId);
     }, POLL_INTERVAL);
-  }, [fetchBusesHTTP]);
+  }, []);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -664,7 +717,12 @@ const HomeScreen: React.FC = () => {
   // ---- websocket with exponential backoff reconnect ----
   const cleanWs = useCallback(() => {
     if (wsRef.current) {
-      try { wsRef.current.onclose = null; wsRef.current.close(); } catch (e) {}
+      try {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      } catch (e) {
+        console.error('Clean WS error:', e);
+      }
       wsRef.current = null;
     }
     if (reconnectTimeoutRef.current) {
@@ -685,68 +743,67 @@ const HomeScreen: React.FC = () => {
     }, delay);
   }, []);
 
-  // NOTE: initWebSocket references scheduleReconnect, so define it before using
   const initWebSocket = useCallback((fleetId?: string) => {
     const fid = fleetId || userRef.current?.fleet_id || selectedBusRef.current?.fleet_id;
-    if (!fid) {
-      // nothing to connect to
-      return;
-    }
+    if (!fid) return;
 
-    // close existing
     if (wsRef.current) {
-      try { wsRef.current.onclose = null; wsRef.current.close(); } catch (e) {}
+      try {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      } catch (e) {
+        console.error('Close existing WS error:', e);
+      }
       wsRef.current = null;
     }
-    // stop polling while trying WS
     stopPolling();
 
-    // create ws URL - keep same pattern as your backend
     const wsUrl = `${WS_BASE_URL}/ws/vehicles/available/${fid}`;
 
     try {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
+        console.log('WebSocket connected');
         reconnectAttemptRef.current = 0;
-        // request an immediate fresh snapshot via HTTP (defensive)
-        fetchBusesHTTP(fid);
-        // stop polling (already stopped)
       };
 
       ws.onmessage = (evt: any) => {
         if (!isMountedRef.current) return;
         try {
-          const payload = JSON.parse(evt.data);
+          const rawData = JSON.parse(evt.data);
+          const payload = rawData.vehicles || rawData;
           setBuses(payload);
           cacheBusesDebounced(payload);
         } catch (e) {
-          // ignore parse problems
+          console.error('WebSocket message parse error:', e);
         }
       };
 
       ws.onclose = () => {
+        console.log('WebSocket closed');
         wsRef.current = null;
         if (!isMountedRef.current) return;
-        // fallback to polling immediately
         startPolling(fid);
-        // also schedule reconnect attempts
         scheduleReconnect(fid);
       };
 
-      ws.onerror = () => {
-        // errors are silent — close and fallback
-        try { ws.close(); } catch (e) {}
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        try {
+          ws.close();
+        } catch (e) {
+          console.error('Close on error failed:', e);
+        }
       };
 
       wsRef.current = ws;
     } catch (e) {
-      // if creation fails, fallback to polling + schedule reconnect
+      console.error('WebSocket init error:', e);
       startPolling(fid);
       scheduleReconnect(fid);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopPolling, startPolling, fetchBusesHTTP, cacheBusesDebounced, scheduleReconnect]);
+  }, [stopPolling, startPolling, cacheBusesDebounced, scheduleReconnect, setBuses]);
 
   // ---- cleanup on unmount ----
   useEffect(() => {
@@ -757,44 +814,32 @@ const HomeScreen: React.FC = () => {
     };
   }, [cleanWs, stopPolling]);
 
-  // ---- startup initialization: show cached data quickly, then ensure connection ----
+  // ---- startup initialization ----
   useEffect(() => {
     const initialize = async () => {
-      // show cached values fast
       await loadCachedBuses();
       const cachedSelected = await loadCachedSelectedBus();
-
-      // load tokens/user
       const { token: t, user: u } = await fetchUserData();
 
-      // if there's a fleet id (either from user or cached selected) connect WS
       const fleetIdToUse = u?.fleet_id || cachedSelected?.fleet_id;
       if (fleetIdToUse) {
         initWebSocket(fleetIdToUse);
-      } else {
-        // fallback: try HTTP fetch using any known fleetId from cached buses or selected bus
-        await fetchBusesHTTP();
       }
     };
 
     initialize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount
+  }, []);
 
-  // ---- AppState handler: reconnect when app becomes active ----
+  // ---- AppState handler ----
   useEffect(() => {
     const onChange = async (next: string) => {
       const prev = appStateRef.current;
       appStateRef.current = next;
       if (prev.match(/inactive|background/) && next === 'active') {
-        // reload cached quick UI
         await loadCachedBuses();
         await loadCachedSelectedBus();
-
-        // ensure token/user are up-to-date
         await fetchUserData();
 
-        // ensure WS is connected (or start polling if not)
         const fleetId = userRef.current?.fleet_id || selectedBusRef.current?.fleet_id;
         if (fleetId) {
           if (!wsRef.current) initWebSocket(fleetId);
@@ -802,7 +847,6 @@ const HomeScreen: React.FC = () => {
           startPolling();
         }
       } else if (next === 'background') {
-        // be conservative: close ws and stop polling to save resources
         cleanWs();
         stopPolling();
       }
@@ -812,24 +856,25 @@ const HomeScreen: React.FC = () => {
     return () => sub.remove();
   }, [cleanWs, stopPolling, initWebSocket, loadCachedBuses, loadCachedSelectedBus, fetchUserData, startPolling]);
 
-  // ---- focus handler for screen (optional safe-check) ----
-  useFocusEffect(useCallback(() => {
-    // ensure if returned to the screen, we have a connection
-    if (!wsRef.current) {
-      const fleetId = userRef.current?.fleet_id || selectedBusRef.current?.fleet_id;
-      if (fleetId) initWebSocket(fleetId);
-      else startPolling();
-    }
-    // don't cleanup WS on blur (we want app-level persistence)
-    return () => {};
-  }, [initWebSocket, startPolling]));
+  // ---- focus handler ----
+  useFocusEffect(
+    useCallback(() => {
+      if (!wsRef.current) {
+        const fleetId = userRef.current?.fleet_id || selectedBusRef.current?.fleet_id;
+        if (fleetId) initWebSocket(fleetId);
+        else startPolling();
+      }
+      return () => {};
+    }, [initWebSocket, startPolling])
+  );
 
-  // ---- keep currentBusLocation updated from buses when selectedBus changes ----
+  // ---- update currentBusLocation from buses ----
   useEffect(() => {
     if (!selectedBus || !buses || buses.length === 0) return;
-    const updated = buses.find((b:any) => b.id === selectedBus.id);
+    const updated = buses.find((b: any) => b.id === selectedBus.id);
     if (updated?.location) {
-      const changed = !currentBusLocation ||
+      const changed =
+        !currentBusLocation ||
         currentBusLocation.latitude !== updated.location.latitude ||
         currentBusLocation.longitude !== updated.location.longitude;
       if (changed) setCurrentBusLocation(updated.location);
@@ -846,17 +891,69 @@ const HomeScreen: React.FC = () => {
     cacheSelectedBus(selectedBus);
   }, [selectedBus, cacheSelectedBus]);
 
-  // send location to backend throttled
-  const lastSentRef = useRef<number>(0);
+  // ---- OPTIMIZED LOCATION SENDING with Mutex ----
+  const sendLocationWithMutex = useCallback(async (lat: number, lng: number, tkn: string) => {
+    try {
+      // Check global timestamp first (fast check)
+      const lockData = await AsyncStorage.getItem(LOCATION_LOCK_KEY);
+      const now = Date.now();
+      
+      if (lockData) {
+        const lastSentTime = parseInt(lockData, 10);
+        if (now - lastSentTime < LOCATION_SEND_INTERVAL) {
+          // Too soon, skip
+          return;
+        }
+      }
+
+      // Try to acquire mutex
+      const acquired = await locationSendMutex.current.acquireLock();
+      
+      if (!acquired) {
+        // Another instance is sending or has lock
+        return;
+      }
+
+      try {
+        // Double-check timestamp after acquiring lock
+        const lockDataAfter = await AsyncStorage.getItem(LOCATION_LOCK_KEY);
+        if (lockDataAfter) {
+          const lastSentTimeAfter = parseInt(lockDataAfter, 10);
+          if (now - lastSentTimeAfter < LOCATION_SEND_INTERVAL) {
+            return;
+          }
+        }
+
+        // Update timestamp BEFORE sending
+        await AsyncStorage.setItem(LOCATION_LOCK_KEY, now.toString());
+        
+        // Send location
+        await sendLocationToBackend(lat, lng, tkn);
+        console.log('✅ Location sent successfully');
+        
+      } finally {
+        // Always release mutex
+        await locationSendMutex.current.releaseLock();
+      }
+      
+    } catch (error) {
+      console.error('Send location with mutex error:', error);
+      // Ensure mutex is released on error
+      await locationSendMutex.current.releaseLock();
+    }
+  }, []);
+
   useEffect(() => {
     if (!debouncedLocation || !tokenRef.current) return;
-    const now = Date.now();
-    if (now - lastSentRef.current < 7000) return;
-    lastSentRef.current = now;
-    sendLocationToBackend(debouncedLocation.latitude, debouncedLocation.longitude, tokenRef.current).catch(()=>{});
-  }, [debouncedLocation]);
+    
+    sendLocationWithMutex(
+      debouncedLocation.latitude,
+      debouncedLocation.longitude,
+      tokenRef.current
+    );
+  }, [debouncedLocation, sendLocationWithMutex]);
 
-  // route calculation debounce
+  // Route calculation debounce
   useEffect(() => {
     if (!currentBusLocation || !location) {
       setRouteCoordinates([]);
@@ -867,7 +964,13 @@ const HomeScreen: React.FC = () => {
       if (isMountedRef.current) setRouteCoordinates(coords);
     }, 500);
     return () => clearTimeout(t);
-  }, [currentBusLocation?.latitude, currentBusLocation?.longitude, location?.latitude, location?.longitude, setRouteCoordinates]);
+  }, [
+    currentBusLocation?.latitude,
+    currentBusLocation?.longitude,
+    location?.latitude,
+    location?.longitude,
+    setRouteCoordinates,
+  ]);
 
   // UI handlers
   const handleSearchPress = useCallback(() => {
@@ -895,10 +998,16 @@ const HomeScreen: React.FC = () => {
           </View>
           <View style={homeStyles.settingContainer}>
             <TouchableOpacity onPress={() => setModalVisible(true)}>
-              <Image source={require('../../../images/notification.png')} style={homeStyles.notification}/>
+              <Image
+                source={require('../../../images/notification.png')}
+                style={homeStyles.notification}
+              />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-              <Image source={require('../../../images/settings.png')} style={homeStyles.settings}/>
+              <Image
+                source={require('../../../images/settings.png')}
+                style={homeStyles.settings}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -906,7 +1015,9 @@ const HomeScreen: React.FC = () => {
 
       <View style={homeStyles.mapContainer}>
         <MapView
-          ref={r => { mapRef.current = r; }}
+          ref={(r) => {
+            mapRef.current = r;
+          }}
           style={homeStyles.map}
           initialRegion={DEFAULT_REGION}
           showsUserLocation
@@ -914,7 +1025,12 @@ const HomeScreen: React.FC = () => {
           showsMyLocationButton
         >
           {location && (
-            <Marker coordinate={location} title="You are here" description="Your current location" image={require('../../../assets/user.png')}/>
+            <Marker
+              coordinate={location}
+              title="You are here"
+              description="Your current location"
+              image={require('../../../assets/user.png')}
+            />
           )}
 
           {selectedBus && currentBusLocation && (
@@ -922,7 +1038,7 @@ const HomeScreen: React.FC = () => {
               key={`bus-${selectedBus.id}`}
               coordinate={currentBusLocation}
               title={selectedBus.route || 'Bus'}
-              description={`Bound For: ${selectedBus.bound_for || "Not available"}`}
+              description={`Bound For: ${selectedBus.bound_for || 'Not available'}`}
               image={require('../../../assets/bus.png')}
             />
           )}
@@ -933,16 +1049,26 @@ const HomeScreen: React.FC = () => {
         </MapView>
       </View>
 
-      <NotificationModal visible={modalVisible} onClose={() => setModalVisible(false)} userId={user?.id} fleetId={user?.fleet_id} />
+      <NotificationModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        userId={user?.id}
+        fleetId={user?.fleet_id}
+      />
 
       <Animated.View style={[homeStyles.searchContainer, getAnimatedStyle(animation)]}>
         {isSearchExpanded ? (
           <View style={homeStyles.expandedSearchContent}>
             <View style={homeStyles.subSearchContainer}>
-              <TouchableOpacity onPress={handleCloseSearch}><View style={homeStyles.stroke} /></TouchableOpacity>
+              <TouchableOpacity onPress={handleCloseSearch}>
+                <View style={homeStyles.stroke} />
+              </TouchableOpacity>
               <Text style={homeStyles.rideText}>Looking for a ride?</Text>
             </View>
-            <TouchableOpacity style={homeStyles.subMainSearchContainer} onPress={() => navigation.navigate('AvailableBus')}>
+            <TouchableOpacity
+              style={homeStyles.subMainSearchContainer}
+              onPress={() => navigation.navigate('AvailableBus')}
+            >
               <View style={homeStyles.subOfMainSearchContainer}>
                 <Image source={require('../../../images/search.png')} />
                 <Text style={homeStyles.searchText}>Search Buses</Text>
@@ -951,7 +1077,7 @@ const HomeScreen: React.FC = () => {
           </View>
         ) : (
           <TouchableOpacity onPress={handleSearchPress} style={homeStyles.collapsedSearchButton}>
-            <Image source={require('../../../images/search.png')} style={homeStyles.searchIcon}/>
+            <Image source={require('../../../images/search.png')} style={homeStyles.searchIcon} />
           </TouchableOpacity>
         )}
       </Animated.View>
