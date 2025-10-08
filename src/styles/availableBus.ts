@@ -65,7 +65,7 @@ const availableBusStyle = StyleSheet.create({
     },
     valueText: {
         fontFamily: 'Montserrat-Regular',
-        fontSize: 14,
+        fontSize: 13,
         flex: 1
     },
     notifyButton: {
@@ -144,6 +144,28 @@ const availableBusStyle = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
     },
+    availableStatus: {
+        color: 'green',
+        fontWeight: 'bold',
+    },
+    fullStatus: {
+        color: 'red',
+        fontWeight: 'bold',
+    },
+    otherStatus: {
+        color: 'orange',
+        fontWeight: 'bold',
+    },
+    disabledNotifyButton: {
+        backgroundColor: '#ccc',
+    },
+    disabledNotifyText: {
+        color: '#666',
+    },
+    standbyStatus: {
+        color: '#f79546ff',
+        fontWeight: 'bold',
+    }
 });
 
 export default availableBusStyle;
