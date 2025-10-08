@@ -494,7 +494,7 @@ import { getAnimatedStyle } from './animateStyle/animatedStyle';
 import getGreeting from './utils/greeting';
 import getRouteCoordinates from './utils/getRouteCoordinates';
 import { useBus } from '../../../context/BusContext';
-import { BASE_URL } from '../../../config/apiConfig';
+import { BASE_URL, WS_BASE_URL } from '../../../config/apiConfig';
 import { sendLocationToBackend } from './sendLocation';
 
 const CACHE_KEY = 'cached_buses_data';
@@ -625,7 +625,7 @@ const HomeScreen: React.FC = () => {
     const fid = fleetId || userRef.current?.fleet_id || selectedBusRef.current?.fleet_id;
     if (!fid) return null;
     try {
-      const resp = await fetch(`https://${BASE_URL}/api/vehicles/available/${fid}`, {
+      const resp = await fetch(`${BASE_URL}/vehicles/available/${fid}`, {
         method: 'GET',
       });
       if (!isMountedRef.current) return null;
@@ -702,7 +702,7 @@ const HomeScreen: React.FC = () => {
     stopPolling();
 
     // create ws URL - keep same pattern as your backend
-    const wsUrl = `wss://${BASE_URL}/ws/vehicles/available/${fid}`;
+    const wsUrl = `${WS_BASE_URL}/ws/vehicles/available/${fid}`;
 
     try {
       const ws = new WebSocket(wsUrl);
