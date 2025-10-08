@@ -50,12 +50,15 @@ const refreshAccessToken = async () => {
     });
 
     const newAccessToken = response.data.access_token;
+    // Optionally save new refresh token if your API returns one
     await AsyncStorage.setItem("access_token", newAccessToken);
 
     console.log("🔄 Access token refreshed successfully");
     return newAccessToken;
   } catch (err) {
     console.error("❌ Failed to refresh token:", err);
+    // Clear tokens if refresh failed
+    await AsyncStorage.multiRemove(["access_token", "refresh_token"]);
     return null;
   }
 };
