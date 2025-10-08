@@ -11,8 +11,6 @@ import { useBus } from '../../../context/BusContext';
 const { height, width } = Dimensions.get('window');
 
 const CACHE_KEY = 'cached_buses_data';
-const POLL_INTERVAL = 15000;
-const CACHE_DEBOUNCE = 2000;
 
 const AvailableBus = () => {
   const { setSelectedBus, setBuses: setGlobalBuses, buses: globalBuses } = useBus();
@@ -26,9 +24,8 @@ const AvailableBus = () => {
   const appStateRef = useRef(AppState.currentState);
   const isMountedRef = useRef(true);
   const fleetIdRef = useRef<string | null>(null);
-  const tokenRef = useRef<string | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastCacheTimeRef = useRef<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [hasData, setHasData] = useState(false);
 
   const onPressBack = useCallback(() => {
     navigation.navigate('Home');
@@ -52,11 +49,7 @@ const AvailableBus = () => {
     }).start(() => setIsNotifyVisible(false));
   }, [slideAnim]);
 
-  const cacheBusesDataDebounced = useCallback(async (busesData: any[]) => {
-    const now = Date.now();
-    if (now - lastCacheTimeRef.current < CACHE_DEBOUNCE) return;
-
-    lastCacheTimeRef.current = now;
+  const cacheBusesData = useCallback(async (busesData: any[]) => {
     try {
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(busesData));
     } catch (error) {
@@ -71,60 +64,20 @@ const AvailableBus = () => {
         const busesData = JSON.parse(cached);
         setLocalBuses(busesData);
         setGlobalBuses(busesData);
+        setHasData(busesData.length > 0);
         return busesData;
       }
     } catch (error) {
       // Silently fail
+      setHasData(false);
     }
+    setHasData(false);
     return null;
   }, [setGlobalBuses]);
 
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-  }, []);
-
-  const fetchBusesViaHTTP = useCallback(async () => {
-    if (!fleetIdRef.current || !tokenRef.current || !isMountedRef.current) return null;
-
-    try {
-      const response = await fetch(`${BASE_URL}/vehicles/available/${fleetIdRef.current}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${tokenRef.current}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok && isMountedRef.current) {
-        const data = await response.json();
-        setLocalBuses(data);
-        setGlobalBuses(data);
-        cacheBusesDataDebounced(data);
-        return data;
-      }
-    } catch (error) {
-      // Silently fail
-    }
-    return null;
-  }, [setGlobalBuses, cacheBusesDataDebounced]);
-
-  const startPolling = useCallback(() => {
-    stopPolling();
-    fetchBusesViaHTTP();
-
-    pollingIntervalRef.current = setInterval(() => {
-      if (isMountedRef.current && appStateRef.current === 'active') {
-        fetchBusesViaHTTP();
-      }
-    }, POLL_INTERVAL);
-  }, [stopPolling, fetchBusesViaHTTP]);
-
   const toggleNotify = useCallback(async (vehicleId: string, enable: boolean) => {
     try {
-      const token = tokenRef.current || await getToken();
+      const token = await getToken();
       if (!token) return false;
 
       const response = await fetch(`${BASE_URL}/users/toggle-notify`, {
@@ -144,6 +97,8 @@ const AvailableBus = () => {
       }
     } catch (error) {
       // Silently fail
+    } finally {
+      setLoading(false);
     }
     return false;
   }, []);
@@ -157,11 +112,15 @@ const AvailableBus = () => {
 
     const wsUrl = `${BASE_URL}/ws/vehicles/available/${fleetId}`;
 
+    setLoading(true);
+
     try {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        stopPolling();
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       };
 
       ws.onmessage = (event) => {
@@ -169,30 +128,38 @@ const AvailableBus = () => {
 
         try {
           const data = JSON.parse(event.data);
-          setLocalBuses(data);
-          setGlobalBuses(data);
-          cacheBusesDataDebounced(data);
+          console.log('Received buses data:', data); // ADD THIS LINE
+          setLocalBuses(data.vehicles || data);
+          setGlobalBuses(data.vehicles || data);
+          setHasData((data.vehicles || data).length > 0);
+          cacheBusesData(data.vehicles || data);
         } catch (err) {
           // Silently fail
         }
       };
 
       ws.onerror = () => {
-        // Silently fail
+        if (isMountedRef.current) {
+          setLoading(false);
+          setHasData(false);
+        }
       };
 
       ws.onclose = () => {
         wsRef.current = null;
         if (isMountedRef.current) {
-          startPolling();
+          setLoading(false);
         }
       };
 
       wsRef.current = ws;
     } catch (error) {
-      startPolling();
+      if (isMountedRef.current) {
+        setLoading(false);
+        setHasData(false);
+      }
     }
-  }, [stopPolling, startPolling, setGlobalBuses, cacheBusesDataDebounced]);
+  }, [setGlobalBuses, cacheBusesData]);
 
   const cleanup = useCallback(() => {
     if (wsRef.current) {
@@ -200,14 +167,13 @@ const AvailableBus = () => {
       wsRef.current.close();
       wsRef.current = null;
     }
-    stopPolling();
-  }, [stopPolling]);
+  }, []);
 
-  // App state handler - only runs once
+  // App state handler
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: string) => {
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-        await loadCachedBuses();
+        const cachedData = await loadCachedBuses();
         if (fleetIdRef.current) {
           initWebSocket(fleetIdRef.current);
         }
@@ -219,9 +185,9 @@ const AvailableBus = () => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, []); // Empty deps
+  }, [loadCachedBuses, initWebSocket, cleanup]);
 
-  // Screen focus handler - stable
+  // Screen focus handler
   useFocusEffect(
     useCallback(() => {
       loadCachedBuses();
@@ -231,24 +197,29 @@ const AvailableBus = () => {
       }
 
       return () => {
-        // Keep connections alive
+        // Keep connections alive when navigating away
       };
-    }, []) // Empty deps
+    }, [loadCachedBuses, initWebSocket])
   );
 
-  // Initial setup - only runs once
+  // Initial setup
   useEffect(() => {
     const initialize = async () => {
+      setLoading(true);
       const user = await getUser();
-      const token = await getToken();
       const fleetId = user?.fleet_id;
 
-      if (!fleetId) return;
+      if (!fleetId) {
+        setLoading(false);
+        setHasData(false);
+        return;
+      }
 
       fleetIdRef.current = fleetId;
-      tokenRef.current = token;
 
-      await loadCachedBuses();
+      const cachedData = await loadCachedBuses();
+
+      // Initialize WebSocket connection
       initWebSocket(fleetId);
     };
 
@@ -258,17 +229,18 @@ const AvailableBus = () => {
       isMountedRef.current = false;
       cleanup();
     };
-  }, []); // Empty deps
+  }, [loadCachedBuses, initWebSocket, cleanup]);
 
-  // Sync with global context - only when it actually changes
+  // Sync with global context
   useEffect(() => {
     if (globalBuses && globalBuses.length > 0) {
       const hasChanged = JSON.stringify(buses) !== JSON.stringify(globalBuses);
       if (hasChanged) {
         setLocalBuses(globalBuses);
+        setHasData(globalBuses.length > 0);
       }
     }
-  }, [globalBuses]); // Only globalBuses as dep
+  }, [globalBuses, buses]);
 
   const filteredBuses = filter === 'All'
     ? buses
@@ -365,7 +337,7 @@ const AvailableBus = () => {
         </View>
 
         <View style={availableBusStyle.bussesRow}>
-          {filteredBuses.length === 0 ? (
+          {loading ? (
             <View style={{ padding: 20, alignItems: 'center' }}>
               <LottieView
                 source={require('../../../images/Loading.json')}
@@ -373,6 +345,30 @@ const AvailableBus = () => {
                 loop
                 style={{ width: width * 0.7, height: height * 0.7 }}
               />
+            </View>
+          ) : !hasData && filteredBuses.length === 0 ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <LottieView
+                source={require('../../../images/EmptyState.json')}
+                autoPlay
+                loop
+                style={{ width: width * 0.7, height: height * 0.7 }}
+              />
+              <Text style={{ marginTop: 10, fontSize: 16, color: '#555' }}>
+                No buses available at the moment
+              </Text>
+            </View>
+          ) : filteredBuses.length === 0 ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <LottieView
+                source={require('../../../images/EmptyState.json')}
+                autoPlay
+                loop
+                style={{ width: width * 0.7, height: height * 0.7 }}
+              />
+              <Text style={{ marginTop: 10, fontSize: 16, color: '#555' }}>
+                No {filter} buses available
+              </Text>
             </View>
           ) : (
             filteredBuses.map((bus, index) => (
@@ -392,15 +388,30 @@ const AvailableBus = () => {
                     <Text style={availableBusStyle.labelText}>Status</Text>
                     <Text style={[
                       availableBusStyle.valueText,
-                      availableBusStyle.statusColor
+                      // Check status_details FIRST
+                      bus.status_details === 'standing' ? availableBusStyle.standbyStatus :
+                        bus.status_details === 'standby' ? availableBusStyle.standbyStatus :
+                          // Then check status
+                          bus.status === 'available' ? availableBusStyle.availableStatus :
+                            bus.status === 'full' ? availableBusStyle.fullStatus :
+                              availableBusStyle.otherStatus
                     ]}>
-                      {bus.status}
+                      {bus.status?.toUpperCase()} | {bus.status_details?.toUpperCase() || 'N/A'}
                     </Text>
                     <TouchableOpacity
-                      style={availableBusStyle.notifyButton}
+                      style={[
+                        availableBusStyle.notifyButton,
+                        (bus.status === 'full' || !bus.location) && availableBusStyle.disabledNotifyButton
+                      ]}
                       onPress={() => handleNotifyPress(bus)}
+                      disabled={bus.status === 'full' || !bus.location}
                     >
-                      <Text style={availableBusStyle.notifyText}>Notify</Text>
+                      <Text style={[
+                        availableBusStyle.notifyText,
+                        (bus.status === 'full' || !bus.location) && availableBusStyle.disabledNotifyText
+                      ]}>
+                        {bus.status === 'full' ? 'Full' : 'Notify'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   <View style={availableBusStyle.rowContainer}>
