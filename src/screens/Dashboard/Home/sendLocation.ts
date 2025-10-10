@@ -1,18 +1,17 @@
-import axios from 'axios';
-import { BASE_URL } from '../../../config/apiConfig';
+// sendLocation.ts (update)
+import { api } from '../../../utils/api';
 
-export const sendLocationToBackend = async (latitude: number, longitude: number, token: string) => {
+export const sendLocationToBackend = async (latitude: number, longitude: number, token?: string) => {
   try {
-    await axios.post(
-      `${BASE_URL}/users/location`,  // Updated to new HTTP endpoint
-      { latitude, longitude },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-      }
-    );
+    // If you pass token explicitly, override headers for this call.
+    if (token) {
+      await api.post('/users/location', { latitude, longitude }, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+    } else {
+      // api will attach stored access_token automatically via interceptor
+      await api.post('/users/location', { latitude, longitude });
+    }
     console.log('Location sent to backend');
   } catch (error) {
     console.error('Failed to send location', error);
