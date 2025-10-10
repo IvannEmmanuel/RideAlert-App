@@ -1,7 +1,7 @@
 // contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getToken, getRefreshToken, saveToken, removeToken, getUser } from '../utils/authStorage';
+import { getToken, getRefreshToken, saveToken, removeToken, getUser, refreshAccessToken } from '../utils/authStorage';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -22,7 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuth = async () => {
     try {
-      const accessToken = await getToken();
+      let accessToken = await getToken();
       const refreshToken = await getRefreshToken();
       const userData = await getUser();
 
@@ -31,6 +31,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasRefreshToken: !!refreshToken, 
         hasUserData: !!userData 
       });
+
+      // If we have refresh token but no access token, try to refresh
+      if (!accessToken && refreshToken) {
+        console.log('🔄 No access token but refresh token exists, attempting refresh...');
+        accessToken = await refreshAccessToken();
+      }
 
       if (accessToken && refreshToken && userData) {
         setIsAuthenticated(true);
