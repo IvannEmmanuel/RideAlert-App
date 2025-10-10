@@ -418,10 +418,10 @@ const AvailableBus = () => {
                     <Text style={availableBusStyle.labelText}>Available Seats</Text>
                     <Text style={availableBusStyle.valueText}>{bus.available_seats}</Text>
                   </View>
-                  <View style={availableBusStyle.rowContainer}>
+                  {/* <View style={availableBusStyle.rowContainer}>
                     <Text style={availableBusStyle.labelText}>Plate</Text>
                     <Text style={availableBusStyle.valueText}>{bus.plate}</Text>
-                  </View>
+                  </View> */}
                 </View>
               </View>
             ))
