@@ -101,7 +101,7 @@ const getToken = async () => {
 
 const removeToken = async () => {
   try {
-    await AsyncStorage.removeItem('access_token');
+    await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user']);
   } catch (e) {
     console.log('Error removing token', e);
   }
@@ -125,7 +125,10 @@ const refreshAccessToken = async () => {
       return null;
     }
 
-    const response = await axios.post(`${BASE_URL}/users/refresh_token`, {
+    console.log('🔄 Calling /users/refresh-token endpoint...');
+    
+    // Fixed: Backend endpoint is /refresh-token (with hyphen)
+    const response = await axios.post(`${BASE_URL}/users/refresh-token`, {
       refresh_token,
     });
 
@@ -139,10 +142,10 @@ const refreshAccessToken = async () => {
       await AsyncStorage.setItem("refresh_token", response.data.refresh_token);
     }
 
-    console.log("🔄 Access token refreshed successfully");
+    console.log("✅ Access token refreshed successfully");
     return newAccessToken;
-  } catch (err) {
-    console.error("❌ Failed to refresh token:", err);
+  } catch (err: any) {
+    console.error("❌ Failed to refresh token:", err?.response?.data || err.message);
     // Clear tokens if refresh failed
     await AsyncStorage.multiRemove(["access_token", "refresh_token", "user"]);
     return null;
