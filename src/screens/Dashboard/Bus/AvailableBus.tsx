@@ -80,33 +80,40 @@ const AvailableBus = () => {
     return null
   }, [setGlobalBuses])
 
-  const toggleNotify = useCallback(async (vehicleId: string, enable: boolean) => {
+  const toggleNotify = async (vehicleId: string, enable: boolean) => {
     try {
-      const token = await getToken()
-      if (!token) return false
+      const token = await getToken();
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
 
       const response = await fetch(`${BASE_URL}/users/toggle-notify`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           notify: enable,
-          vehicle_id: vehicleId,
-        }),
-      })
+          vehicle_id: vehicleId
+        })
+      });
 
       if (response.ok) {
-        return true
+        const data = await response.json();
+        console.log('✅ Notify status updated:', data);
+        return true;
+      } else {
+        const error = await response.json();
+        console.error('❌ Failed to update notify status:', error);
+        return false;
       }
     } catch (error) {
-      // Silently fail
-    } finally {
-      setLoading(false)
+      console.error('❌ Error toggling notify:', error);
+      return false;
     }
-    return false
-  }, [])
+  };
 
   const initWebSocket = useCallback(
     (fleetId: string) => {
@@ -376,7 +383,7 @@ const AvailableBus = () => {
                           : bus.status_details === "standby"
                             ? availableBusStyle.standbyStatus
                             : // Then check status
-                              bus.status === "available"
+                            bus.status === "available"
                               ? availableBusStyle.availableStatus
                               : bus.status === "full"
                                 ? availableBusStyle.fullStatus
