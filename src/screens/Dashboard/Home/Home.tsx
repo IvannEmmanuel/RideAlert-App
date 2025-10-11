@@ -481,7 +481,7 @@
 // export default HomeScreen;
 
 import type React from "react"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, cache } from "react"
 import { View, Text, TouchableOpacity, Image, Animated, AppState, BackHandler } from "react-native"
 import MapView, { Marker, Polyline, Callout } from "react-native-maps"
 import { useNavigation, useFocusEffect } from "@react-navigation/native"
@@ -505,6 +505,7 @@ const CACHE_KEY = "cached_buses_data"
 const SELECTED_BUS_KEY = "selected_bus_data"
 const LOCATION_LOCK_KEY = "location_send_lock"
 const LOCATION_MUTEX_KEY = "location_send_mutex"
+const ETA_DATA_KEY = "cached_eta_data"
 const POLL_INTERVAL = 15000
 const CACHE_DEBOUNCE_MS = 2000
 const RECONNECT_BASE_MS = 1000
@@ -649,6 +650,18 @@ const HomeScreen: React.FC = () => {
     }
   }, [])
 
+  const cacheEtaData = useCallback(async (data: any) => {
+    try {
+      if (!data) {
+        await AsyncStorage.removeItem(ETA_DATA_KEY)
+      } else {
+        await AsyncStorage.setItem(ETA_DATA_KEY, JSON.stringify(data))
+      }
+    } catch (e) {
+      console.error("Cache ETA data error:", e)
+    }
+  }, [])
+
   const cacheSelectedBus = useCallback(async (bus: any) => {
     try {
       if (!bus) {
@@ -690,6 +703,23 @@ const HomeScreen: React.FC = () => {
     }
     return null
   }, [setSelectedBus, setCurrentBusLocation])
+
+  const loadCachedEtaData = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(ETA_DATA_KEY)
+      if (raw && isMountedRef.current) {
+        const parsed = JSON.parse(raw)
+        // Check if it matches the current selected bus
+        if (selectedBusRef.current && parsed.vehicle_id === selectedBusRef.current.id) {
+          setEtaData(parsed)
+          return parsed
+        }
+      }
+    } catch (e) {
+      console.error("Load cached ETA data error:", e)
+    }
+    return null
+  }, [])
 
   useEffect(() => {
     selectedBusRef.current = selectedBus
@@ -858,19 +888,21 @@ const HomeScreen: React.FC = () => {
 
       if (isMountedRef.current) {
         setEtaData(response.data)
+        cacheEtaData(response.data)
         console.log("✅ ETA updated:", response.data.eta_formatted, `(${response.data.current_speed_kmh.toFixed(1)} km/h)`)
       }
     } catch (error) {
       console.error("❌ Error fetching ETA:", error?.response?.data || error?.message)
       if (isMountedRef.current && !etaData) {
         setEtaData(null)
+        cacheEtaData(null)
       }
     } finally {
       if (isMountedRef.current) {
         setLoadingEta(false)
       }
     }
-  }, [])
+  }, [cacheEtaData])
 
   // ---- NEW: ETA POLLING CONTROL ----
   const startEtaPolling = useCallback(() => {
@@ -923,6 +955,7 @@ const HomeScreen: React.FC = () => {
     const initialize = async () => {
       await loadCachedBuses()
       const cachedSelected = await loadCachedSelectedBus()
+      await loadCachedEtaData()
       const { token: t, user: u } = await fetchUserData()
 
       const fleetIdToUse = u?.fleet_id || cachedSelected?.fleet_id
@@ -942,6 +975,7 @@ const HomeScreen: React.FC = () => {
       if (prev.match(/inactive|background/) && next === "active") {
         await loadCachedBuses()
         await loadCachedSelectedBus()
+        await loadCachedEtaData()
         await fetchUserData()
 
         const fleetId = userRef.current?.fleet_id || selectedBusRef.current?.fleet_id
@@ -964,7 +998,7 @@ const HomeScreen: React.FC = () => {
 
     const sub = AppState.addEventListener("change", onChange)
     return () => sub.remove()
-  }, [cleanWs, stopPolling, stopEtaPolling, initWebSocket, loadCachedBuses, loadCachedSelectedBus, fetchUserData, startPolling, startEtaPolling])
+  }, [cleanWs, stopPolling, stopEtaPolling, initWebSocket, loadCachedBuses, loadCachedSelectedBus, loadCachedEtaData, fetchUserData, startPolling, startEtaPolling])
 
   // ---- focus handler ----
   useFocusEffect(
@@ -1029,6 +1063,7 @@ const HomeScreen: React.FC = () => {
     } else {
       stopEtaPolling()
       setEtaData(null)
+      cacheEtaData(null)
     }
 
     return () => {
@@ -1036,7 +1071,7 @@ const HomeScreen: React.FC = () => {
         stopEtaPolling()
       }
     }
-  }, [selectedBus?.id, location?.latitude, location?.longitude, startEtaPolling, stopEtaPolling])
+  }, [selectedBus?.id, location?.latitude, location?.longitude, token, startEtaPolling, stopEtaPolling, cacheEtaData])
 
   // Cache buses whenever they update
   useEffect(() => {
@@ -1160,10 +1195,10 @@ const HomeScreen: React.FC = () => {
       {selectedBus && etaData && (
         <View style={homeStyles.etaFloatingContainer}>
           <View style={homeStyles.etaCard}>
-            <Text style={homeStyles.etaTitle}>Bus {selectedBus.route}</Text>
+            <Text style={homeStyles.etaTitle}>Bus {etaData.vehicle_route}</Text> 
             <View style={homeStyles.etaRow}>
               <Text style={homeStyles.etaLabel}>Distance:</Text>
-              <Text style={homeStyles.etaValue}>{etaData.distance_km.toFixed(2)} km</Text>
+              <Text style={homeStyles.etaValue}>{((etaData.distance_km ?? 0).toFixed(2))} km</Text> 
             </View>
             <View style={homeStyles.etaRow}>
               <Text style={homeStyles.etaLabel}>ETA:</Text>
@@ -1172,7 +1207,7 @@ const HomeScreen: React.FC = () => {
             {etaData.current_speed_kmh > 0 && (
               <View style={homeStyles.etaRow}>
                 <Text style={homeStyles.etaLabel}>Speed:</Text>
-                <Text style={homeStyles.etaSpeed}>{etaData.current_speed_kmh.toFixed(1)} km/h</Text>
+                <Text style={homeStyles.etaSpeed}>{((etaData.current_speed_kmh ?? 0).toFixed(1))} km/h</Text>
               </View>
             )}
             {etaData.is_stopped && (
