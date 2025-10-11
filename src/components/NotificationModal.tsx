@@ -121,12 +121,16 @@ export const NotificationModal = ({ visible, onClose, userId, fleetId }) => {
   return (
     <Modal
       isVisible={visible}
-      coverScreen={false}
-      backdropOpacity={0}
+      coverScreen={true} // 👈 ensures it overlays everything
+      backdropOpacity={0.0} // 👈 adds light dim behind for clarity
       animationIn="fadeIn"
       animationOut="fadeOut"
       onBackdropPress={onClose}
-      style={{ marginTop: height * 0.1, justifyContent: 'flex-start' }}
+      style={{
+        marginTop: height * 0.1,
+        justifyContent: 'flex-start',
+        zIndex: 9999, // 👈 ensures it’s above ETA
+      }}
     >
       <View style={homeStyles.modalContent}>
         <Text style={homeStyles.modalText}>Notifications</Text>
