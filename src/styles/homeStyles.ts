@@ -133,6 +133,7 @@ const homeStyles = StyleSheet.create({
     borderRadius: 10,
     width: width * 0.7,
     maxHeight: height * 0.25,
+    zIndex: 1000
   },
   modalText: {
     fontFamily: "Montserrat-Bold",
@@ -219,7 +220,175 @@ const homeStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
-  }
+  },
+  etaContainer: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    zIndex: 1000,
+  },
+  etaCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  etaHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  etaRoute: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    flex: 1,
+  },
+  etaBadge: {
+    backgroundColor: "#3498db",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  etaText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#ffffff",
+  },
+  etaDetails: {
+    gap: 6,
+  },
+  etaBoundFor: {
+    fontSize: 14,
+    color: "#666666",
+    fontWeight: "500",
+  },
+  etaBoundForValue: {
+    color: "#1a1a1a",
+    fontWeight: "700",
+  },
+  etaDistance: {
+    fontSize: 13,
+    color: "#999999",
+    fontWeight: "400",
+  },
+  etaFloatingContainer: {
+    position: 'absolute',
+    top: 120,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20, // keeps spacing from edges
+    zIndex: 10,
+    elevation: 10,
+  },
+  etaTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+
+  etaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+
+  etaLabel: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    fontWeight: '500',
+  },
+
+  etaValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2c3e50',
+  },
+
+  etaHighlight: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#3498db',
+  },
+
+  etaSpeed: {
+    fontSize: 13,
+    color: '#27ae60',
+    fontWeight: '600',
+    fontStyle: 'italic',
+  },
+
+  etaUpdating: {
+    fontSize: 11,
+    color: '#95a5a6',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  etaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+
+  confidenceBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  confidenceHigh: {
+    backgroundColor: '#d4edda',
+  },
+
+  confidenceMedium: {
+    backgroundColor: '#fff3cd',
+  },
+
+  confidenceLow: {
+    backgroundColor: '#f8d7da',
+  },
+
+  confidenceText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  stoppedBanner: {
+    backgroundColor: '#fff3cd',
+    padding: 8,
+    borderRadius: 6,
+    marginVertical: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#ffc107',
+  },
+
+  stoppedText: {
+    fontSize: 12,
+    color: '#856404',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  etaMessage: {
+    fontSize: 11,
+    color: '#6c757d',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
+  },
 });
 
 export default homeStyles;
