@@ -482,7 +482,7 @@
 
 import type React from "react"
 import { useState, useEffect, useRef, useCallback, cache } from "react"
-import { View, Text, TouchableOpacity, Image, Animated, AppState, BackHandler } from "react-native"
+import { View, Text, TouchableOpacity, Image, Animated, AppState, BackHandler, AppStateStatus } from "react-native"
 import MapView, { Marker, Polyline, Callout } from "react-native-maps"
 import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
@@ -620,10 +620,13 @@ const HomeScreen: React.FC = () => {
 
   const isMountedRef = useRef(true)
   const wsRef = useRef<any>(null)
+  const vehicleWsRef = useRef<any>(null)
   const pollingRef = useRef<any>(null)
   const etaPollingRef = useRef<any>(null) // NEW: ETA polling ref
   const reconnectAttemptRef = useRef(0)
   const reconnectTimeoutRef = useRef<any>(null)
+  const vehicleReconnectAttemptRef = useRef(0)
+  const vehicleReconnectTimeoutRef = useRef<any>(null)
   const lastCacheTimeRef = useRef(0)
   const appStateRef = useRef(AppState.currentState)
   const tokenRef = useRef<string | null>(null)
@@ -725,6 +728,8 @@ const HomeScreen: React.FC = () => {
     selectedBusRef.current = selectedBus
   }, [selectedBus])
 
+  
+
   useEffect(() => {
     locationRef.current = location
   }, [location])
@@ -780,6 +785,131 @@ const HomeScreen: React.FC = () => {
     }
     reconnectAttemptRef.current = 0
   }, [])
+
+  // ---- vehicle/device-specific websocket helpers ----
+  const cleanVehicleWs = useCallback(() => {
+    if (vehicleWsRef.current) {
+      try {
+        vehicleWsRef.current.onclose = null
+        vehicleWsRef.current.close()
+      } catch (e) {
+        console.error("Clean vehicle WS error:", e)
+      }
+      vehicleWsRef.current = null
+    }
+    if (vehicleReconnectTimeoutRef.current) {
+      clearTimeout(vehicleReconnectTimeoutRef.current)
+      vehicleReconnectTimeoutRef.current = null
+    }
+    vehicleReconnectAttemptRef.current = 0
+  }, [])
+
+  const scheduleVehicleReconnect = useCallback((vehicleId?: string, deviceId?: string) => {
+    vehicleReconnectAttemptRef.current = (vehicleReconnectAttemptRef.current || 0) + 1
+    const attempt = vehicleReconnectAttemptRef.current
+    const delay = Math.min(RECONNECT_BASE_MS * Math.pow(2, attempt), RECONNECT_MAX_MS)
+    if (vehicleReconnectTimeoutRef.current) clearTimeout(vehicleReconnectTimeoutRef.current)
+    vehicleReconnectTimeoutRef.current = setTimeout(() => {
+      if (!isMountedRef.current) return
+      initVehicleWebSocket(vehicleId, deviceId)
+    }, delay)
+  }, [])
+
+  const initVehicleWebSocket = useCallback((vehicleId?: string, deviceId?: string) => {
+    // pick one endpoint: prefer vehicle-level subscription if vehicleId known
+    const vid = vehicleId || selectedBusRef.current?.id
+    const did = deviceId || selectedBusRef.current?.device_id
+    const endpoint = vid ? `${WS_BASE_URL}/ws/vehicle/${vid}/location` : did ? `${WS_BASE_URL}/ws/device/${did}/location` : null
+    if (!endpoint) return
+
+    // close existing
+    if (vehicleWsRef.current) {
+      try {
+        vehicleWsRef.current.onclose = null
+        vehicleWsRef.current.close()
+      } catch (e) {
+        console.error("Close existing vehicle WS error:", e)
+      }
+      vehicleWsRef.current = null
+    }
+
+    try {
+      const ws = new WebSocket(endpoint)
+
+      ws.onopen = () => {
+        console.log("Vehicle WS connected", endpoint)
+        vehicleReconnectAttemptRef.current = 0
+      }
+
+      ws.onmessage = (evt: any) => {
+        if (!isMountedRef.current) return
+        try {
+          const raw = JSON.parse(evt.data)
+          const msg = raw || {}
+
+          // support both { type: 'location_update', latitude, longitude } and simple payloads
+          const lat = msg.latitude ?? msg.location?.latitude
+          const lng = msg.longitude ?? msg.location?.longitude
+          const vId = msg.vehicle_id ?? msg.vehicleId ?? vid
+          const dId = msg.device_id ?? msg.deviceId ?? did
+
+          if (lat != null && lng != null) {
+            const loc = { latitude: Number(lat), longitude: Number(lng) }
+            // update current bus location
+            setCurrentBusLocation(loc)
+
+            // also update buses array so other UI stays consistent
+            setBuses((prev: any[]) => {
+              if (!prev || prev.length === 0) return prev
+              return prev.map((b) => {
+                if (b.id === vId || b.device_id === dId) {
+                  return { ...b, location: loc }
+                }
+                return b
+              })
+            })
+          }
+        } catch (e) {
+          console.error("Vehicle WS message parse error:", e)
+        }
+      }
+
+      ws.onclose = () => {
+        console.log("Vehicle WS closed")
+        vehicleWsRef.current = null
+        if (!isMountedRef.current) return
+        // schedule reconnect
+        scheduleVehicleReconnect(vid, did)
+      }
+
+      ws.onerror = (err: any) => {
+        console.error("Vehicle WS error:", err)
+        try {
+          ws.close()
+        } catch (e) {
+          console.error("Close on vehicle WS error failed:", e)
+        }
+      }
+
+      vehicleWsRef.current = ws
+    } catch (e) {
+      console.error("Init vehicle WS error:", e)
+      scheduleVehicleReconnect(vid, did)
+    }
+  }, [setCurrentBusLocation, setBuses])
+
+  // Start vehicle-specific WS when a bus is selected
+  useEffect(() => {
+    if (!selectedBus) return
+    const vid = selectedBus?.id
+    const did = selectedBus?.device_id
+    initVehicleWebSocket(vid, did)
+
+    return () => {
+      // keep vehicle WS active only while this bus is selected
+      cleanVehicleWs()
+    }
+  }, [selectedBus, initVehicleWebSocket, cleanVehicleWs])
 
   const scheduleReconnect = useCallback((fleetId?: string) => {
     reconnectAttemptRef.current = (reconnectAttemptRef.current || 0) + 1
@@ -892,7 +1022,8 @@ const HomeScreen: React.FC = () => {
         console.log("✅ ETA updated:", response.data.eta_formatted, `(${response.data.current_speed_kmh.toFixed(1)} km/h)`)
       }
     } catch (error) {
-      console.error("❌ Error fetching ETA:", error?.response?.data || error?.message)
+      const e: any = error
+      console.error("❌ Error fetching ETA:", e?.response?.data || e?.message)
       if (isMountedRef.current && !etaData) {
         setEtaData(null)
         cacheEtaData(null)
@@ -945,6 +1076,7 @@ const HomeScreen: React.FC = () => {
     return () => {
       isMountedRef.current = false
       cleanWs()
+      cleanVehicleWs()
       stopPolling()
       stopEtaPolling()
     }
@@ -969,7 +1101,7 @@ const HomeScreen: React.FC = () => {
 
   // ---- AppState handler ----
   useEffect(() => {
-    const onChange = async (next: string) => {
+    const onChange = async (next: AppStateStatus) => {
       const prev = appStateRef.current
       appStateRef.current = next
       if (prev.match(/inactive|background/) && next === "active") {
@@ -984,6 +1116,10 @@ const HomeScreen: React.FC = () => {
         } else {
           startPolling()
         }
+        // Start vehicle-specific WS when foregrounding if a bus is selected
+        if (selectedBusRef.current) {
+          initVehicleWebSocket(selectedBusRef.current.id, selectedBusRef.current.device_id)
+        }
         // Restart ETA polling
         if (selectedBusRef.current && locationRef.current) {
           console.log("🔄 Restarting ETA polling after foreground")
@@ -991,6 +1127,7 @@ const HomeScreen: React.FC = () => {
         }
       } else if (next === "background") {
         cleanWs()
+        cleanVehicleWs()
         stopPolling()
         stopEtaPolling()
       }
@@ -1212,7 +1349,7 @@ const HomeScreen: React.FC = () => {
             )}
             {etaData.is_stopped && (
               <View style={homeStyles.stoppedBanner}>
-                <Text style={homeStyles.stoppedText}>⏸️ Temporarily Stopped</Text>
+                <Text style={homeStyles.stoppedText}>Temporarily Stopped</Text>
               </View>
             )}
           </View>
