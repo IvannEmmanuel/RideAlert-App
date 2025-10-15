@@ -1341,12 +1341,12 @@ const HomeScreen: React.FC = () => {
               <Text style={homeStyles.etaLabel}>ETA:</Text>
               <Text style={[homeStyles.etaValue, homeStyles.etaHighlight]}>{etaData.eta_formatted}</Text>
             </View>
-            {etaData.current_speed_kmh > 0 && (
+            {/* {etaData.current_speed_kmh > 0 && (
               <View style={homeStyles.etaRow}>
                 <Text style={homeStyles.etaLabel}>Speed:</Text>
                 <Text style={homeStyles.etaSpeed}>{((etaData.current_speed_kmh ?? 0).toFixed(1))} km/h</Text>
               </View>
-            )}
+            )} */}
             {etaData.is_stopped && (
               <View style={homeStyles.stoppedBanner}>
                 <Text style={homeStyles.stoppedText}>Temporarily Stopped</Text>
