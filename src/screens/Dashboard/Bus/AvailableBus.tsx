@@ -141,13 +141,19 @@ const AvailableBus = () => {
 
           try {
             const data = JSON.parse(event.data)
-            console.log("Received buses data:", data) // ADD THIS LINE
-            setLocalBuses(data.vehicles || data)
-            setGlobalBuses(data.vehicles || data)
-            setHasData((data.vehicles || data).length > 0)
-            cacheBusesData(data.vehicles || data)
+            console.log("Received buses data:", data)
+
+            // Ensure data is always an array
+            const vehiclesArray = Array.isArray(data) ? data : (data.vehicles || [])
+
+            setLocalBuses(vehiclesArray)
+            setGlobalBuses(vehiclesArray)
+            setHasData(vehiclesArray.length > 0)
+            cacheBusesData(vehiclesArray)
           } catch (err) {
-            // Silently fail
+            console.error("Error parsing WebSocket data:", err)
+            setLocalBuses([])
+            setHasData(false)
           }
         }
 

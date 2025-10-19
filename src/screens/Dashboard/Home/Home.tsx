@@ -634,6 +634,44 @@ const HomeScreen: React.FC = () => {
   const selectedBusRef = useRef<any>(null)
   const locationRef = useRef<any>(null) // NEW: Location ref
   const locationSendMutex = useRef(LocationSendMutex.getInstance())
+  const lastBusesStateRef = useRef<string>("")  // Track last sent state
+  const lastSelectedBusStateRef = useRef<string>("")  // Track last selected bus state
+
+  const compareAndUpdateBuses = useCallback((newBuses: any[]) => {
+    if (!newBuses || !isMountedRef.current) return
+
+    // Convert to JSON for comparison
+    const newState = JSON.stringify(newBuses)
+
+    // Only update if state actually changed
+    if (lastBusesStateRef.current === newState) {
+      console.log("ℹ️ Bus list unchanged, skipping update")
+      return
+    }
+
+    lastBusesStateRef.current = newState
+
+    console.log("🔄 Bus list changed, updating state")
+    setBuses(newBuses)
+    cacheBusesDebounced(newBuses)
+  }, [setBuses, cacheBusesDebounced])
+
+  const compareAndUpdateSelectedBus = useCallback((newSelectedBus: any) => {
+    if (!isMountedRef.current) return
+
+    const newState = JSON.stringify(newSelectedBus)
+
+    if (lastSelectedBusStateRef.current === newState) {
+      console.log("ℹ️ Selected bus unchanged")
+      return
+    }
+
+    lastSelectedBusStateRef.current = newState
+
+    console.log("🔄 Selected bus changed, updating")
+    setSelectedBus(newSelectedBus)
+    cacheSelectedBus(newSelectedBus)
+  }, [setSelectedBus, cacheSelectedBus])
 
   useEffect(() => {
     const backAction = () => true
@@ -728,7 +766,7 @@ const HomeScreen: React.FC = () => {
     selectedBusRef.current = selectedBus
   }, [selectedBus])
 
-  
+
 
   useEffect(() => {
     locationRef.current = location
@@ -953,8 +991,9 @@ const HomeScreen: React.FC = () => {
           try {
             const rawData = JSON.parse(evt.data)
             const payload = rawData.vehicles || rawData
-            setBuses(payload)
-            cacheBusesDebounced(payload)
+
+            // Use comparison function instead of direct update
+            compareAndUpdateBuses(payload)
           } catch (e) {
             console.error("WebSocket message parse error:", e)
           }
@@ -1160,6 +1199,9 @@ const HomeScreen: React.FC = () => {
     const updatedBus = buses.find((b) => b.id === selectedBus.id)
     if (!updatedBus) return
 
+    // Use comparison function
+    compareAndUpdateSelectedBus(updatedBus)
+
     // Handle both status_detail and status_details
     const prevStatusDetail = selectedBus.status_detail || selectedBus.status_details
     const updatedStatusDetail = updatedBus.status_detail || updatedBus.status_details
@@ -1189,10 +1231,7 @@ const HomeScreen: React.FC = () => {
       // Force marker remount to update callout
       setMarkerKey((prev) => prev + 1)
     }
-
-    // ALWAYS update selectedBus last (after logging and key update)
-    setSelectedBus(updatedBus)
-  }, [buses])
+  }, [buses, compareAndUpdateSelectedBus])
 
   useEffect(() => {
     if (selectedBus && location) {
@@ -1332,21 +1371,21 @@ const HomeScreen: React.FC = () => {
       {selectedBus && etaData && (
         <View style={homeStyles.etaFloatingContainer}>
           <View style={homeStyles.etaCard}>
-            <Text style={homeStyles.etaTitle}>Bus {etaData.vehicle_route}</Text> 
+            <Text style={homeStyles.etaTitle}>Bus {etaData.vehicle_route}</Text>
             <View style={homeStyles.etaRow}>
               <Text style={homeStyles.etaLabel}>Distance:</Text>
-              <Text style={homeStyles.etaValue}>{((etaData.distance_km ?? 0).toFixed(2))} km</Text> 
+              <Text style={homeStyles.etaValue}>{((etaData.distance_km ?? 0).toFixed(2))} km</Text>
             </View>
             <View style={homeStyles.etaRow}>
               <Text style={homeStyles.etaLabel}>ETA:</Text>
               <Text style={[homeStyles.etaValue, homeStyles.etaHighlight]}>{etaData.eta_formatted}</Text>
             </View>
-            {/* {etaData.current_speed_kmh > 0 && (
+            {etaData.current_speed_kmh > 0 && (
               <View style={homeStyles.etaRow}>
                 <Text style={homeStyles.etaLabel}>Speed:</Text>
                 <Text style={homeStyles.etaSpeed}>{((etaData.current_speed_kmh ?? 0).toFixed(1))} km/h</Text>
               </View>
-            )} */}
+            )}
             {etaData.is_stopped && (
               <View style={homeStyles.stoppedBanner}>
                 <Text style={homeStyles.stoppedText}>Temporarily Stopped</Text>
