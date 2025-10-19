@@ -1,5 +1,5 @@
 // contexts/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getToken, getRefreshToken, saveToken, removeToken, getUser, refreshAccessToken } from '../utils/authStorage';
 
@@ -15,12 +15,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to decode JWT and check if expired
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+
+    // Decode base64 for React Native (add padding if needed)
+    const base64 = parts[1];
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const decoded = JSON.parse(atob(padded));
+    
+    if (!decoded.exp) return false;
+
+    // Token expired if exp time (in seconds) is less than current time (in milliseconds / 1000)
+    return decoded.exp < Date.now() / 1000;
+  } catch (e) {
+    console.error('Error decoding token:', e);
+    return true;
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any | null>(null);
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       let accessToken = await getToken();
       const refreshToken = await getRefreshToken();
@@ -57,7 +78,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Validate and refresh tokens if needed (this runs every 5 seconds)
+  const validateAndRefreshTokens = useCallback(async () => {
+    const accessToken = await getToken();
+    const refreshToken = await getRefreshToken();
+
+    if (!accessToken || !refreshToken) {
+      return;
+    }
+
+    // If access token is expired
+    if (isTokenExpired(accessToken)) {
+      console.warn('⏰ Access token expired');
+
+      // Check if refresh token is also expired
+      if (isTokenExpired(refreshToken)) {
+        console.warn('❌ Refresh token is also expired - force logout');
+        await logout();
+        return;
+      }
+
+      // Try to refresh the access token
+      try {
+        console.log('🔄 Attempting to refresh access token...');
+        const newAccessToken = await refreshAccessToken();
+        if (newAccessToken) {
+          console.log('✅ Access token refreshed successfully');
+        }
+      } catch (err) {
+        console.error('❌ Token refresh failed:', err);
+        // Refresh failed, logout user
+        await logout();
+      }
+    }
+  }, []);
 
   const login = async (accessToken: string, refreshToken: string, userData: any) => {
     try {
@@ -74,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await removeToken();
       await AsyncStorage.multiRemove(['refresh_token', 'user']);
@@ -85,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('❌ Error during logout:', error);
     }
-  };
+  }, []);
 
   const updateUser = async (updatedUser: any) => {
     try {
@@ -97,9 +153,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Check auth on app startup
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
+
+  // Set up interval to validate and refresh tokens every 5 seconds
+  useEffect(() => {
+    const tokenCheckInterval = setInterval(() => {
+      validateAndRefreshTokens();
+    }, 5000);
+
+    return () => clearInterval(tokenCheckInterval);
+  }, [validateAndRefreshTokens]);
 
   return (
     <AuthContext.Provider value={{ 

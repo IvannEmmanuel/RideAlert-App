@@ -99,13 +99,11 @@
 
 // export default apiClient;
 
-// api/client.ts
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASE_URL } from '../config/apiConfig';
 import { getToken, refreshAccessToken, removeToken } from '../utils/authStorage';
 
-// Create axios instance
 const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
@@ -128,7 +126,7 @@ const processQueue = (error: any = null, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Request interceptor
+// Request interceptor - add token to all requests
 apiClient.interceptors.request.use(
   async (config) => {
     const token = await getToken();
@@ -142,7 +140,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor - handle 401 and refresh token
 apiClient.interceptors.response.use(
   (response) => {
     return response;
@@ -153,7 +151,7 @@ apiClient.interceptors.response.use(
     // If error is 401 and we haven't tried refreshing yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // If already refreshing, add to queue
+        // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -170,30 +168,33 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        console.log('🔄 Attempting to refresh access token...');
         const newToken = await refreshAccessToken();
         
         if (newToken) {
-          // Retry the original request with new token
+          console.log('✅ Token refreshed, retrying request');
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          
-          // Process queued requests
           processQueue(null, newToken);
           return apiClient(originalRequest);
         } else {
-          // Refresh failed - clear tokens
+          console.warn('❌ Token refresh returned null - logging out');
+          // Refresh returned null, logout
           await removeToken();
           await AsyncStorage.multiRemove(['refresh_token', 'user']);
-          
-          processQueue(new Error('Refresh token failed'), null);
-          
-          // You can emit an event or use a navigation ref here to redirect to login
-          // For now, just reject the error
+          processQueue(new Error('Token refresh failed'), null);
           return Promise.reject(error);
         }
-      } catch (refreshError) {
-        processQueue(refreshError, null);
+      } catch (refreshError: any) {
+        console.error('❌ Token refresh failed:', refreshError);
+        
+        // Refresh failed - force logout
         await removeToken();
         await AsyncStorage.multiRemove(['refresh_token', 'user']);
+        
+        processQueue(refreshError, null);
+        
+        // Trigger logout by clearing auth state
+        // This will cause app to redirect to login
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
