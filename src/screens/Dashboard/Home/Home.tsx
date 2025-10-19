@@ -486,7 +486,7 @@ import { View, Text, TouchableOpacity, Image, Animated, AppState, BackHandler, A
 import MapView, { Marker, Polyline, Callout } from "react-native-maps"
 import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { getToken, getUser } from "../../../utils/authStorage"
+import { getToken, getUser, refreshAccessToken } from "../../../utils/authStorage"
 import { NotificationModal } from "../../../components/NotificationModal"
 import homeStyles from "../../../styles/homeStyles"
 import DEFAULT_REGION from "./default_region"
@@ -500,6 +500,7 @@ import { sendLocationToBackend } from "./sendLocation"
 import BusCallout from "../../../components/BusCallout"
 import axios from "axios"
 import { BASE_URL } from "../../../config/apiConfig"
+import { isTokenExpired } from "../../../context/AuthContext"
 
 const CACHE_KEY = "cached_buses_data"
 const SELECTED_BUS_KEY = "selected_bus_data"
@@ -1035,6 +1036,19 @@ const HomeScreen: React.FC = () => {
       return
     }
 
+    // Check if token is expired BEFORE making the request
+    if (isTokenExpired(currentToken)) {
+      console.log("🔄 Token expired locally, refreshing before ETA request...")
+      const refreshed = await refreshAccessToken()
+      if (!refreshed) {
+        console.warn("❌ Token refresh failed")
+        return
+      }
+      // Get updated token after refresh
+      const newToken = await getToken()
+      tokenRef.current = newToken
+    }
+
     try {
       setLoadingEta(true)
       const response = await axios.post(
@@ -1048,7 +1062,7 @@ const HomeScreen: React.FC = () => {
         },
         {
           headers: {
-            Authorization: `Bearer ${currentToken}`,
+            Authorization: `Bearer ${tokenRef.current}`,
             "Content-Type": "application/json",
           },
           timeout: 8000,
@@ -1058,7 +1072,7 @@ const HomeScreen: React.FC = () => {
       if (isMountedRef.current) {
         setEtaData(response.data)
         cacheEtaData(response.data)
-        console.log("✅ ETA updated:", response.data.eta_formatted, `(${response.data.current_speed_kmh.toFixed(1)} km/h)`)
+        console.log("✅ ETA updated:", response.data.eta_formatted)
       }
     } catch (error) {
       const e: any = error
@@ -1072,7 +1086,7 @@ const HomeScreen: React.FC = () => {
         setLoadingEta(false)
       }
     }
-  }, [cacheEtaData])
+  }, [cacheEtaData, isTokenExpired, refreshAccessToken])
 
   // ---- NEW: ETA POLLING CONTROL ----
   const startEtaPolling = useCallback(() => {

@@ -151,7 +151,6 @@ apiClient.interceptors.response.use(
     // If error is 401 and we haven't tried refreshing yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -168,6 +167,19 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        // Check if refresh token exists FIRST
+        const refreshToken = await AsyncStorage.getItem('refresh_token');
+        
+        if (!refreshToken) {
+          console.warn('❌ No refresh token found - forcing logout');
+          await removeToken();
+          await AsyncStorage.multiRemove(['refresh_token', 'user']);
+          processQueue(new Error('No refresh token'), null);
+          isRefreshing = false;
+          // Redirect to login - call your logout function from context here
+          return Promise.reject(new Error('No refresh token'));
+        }
+
         console.log('🔄 Attempting to refresh access token...');
         const newToken = await refreshAccessToken();
         
@@ -178,26 +190,19 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         } else {
           console.warn('❌ Token refresh returned null - logging out');
-          // Refresh returned null, logout
           await removeToken();
           await AsyncStorage.multiRemove(['refresh_token', 'user']);
           processQueue(new Error('Token refresh failed'), null);
-          return Promise.reject(error);
+          isRefreshing = false;
+          return Promise.reject(new Error('Token refresh failed'));
         }
       } catch (refreshError: any) {
         console.error('❌ Token refresh failed:', refreshError);
-        
-        // Refresh failed - force logout
         await removeToken();
         await AsyncStorage.multiRemove(['refresh_token', 'user']);
-        
         processQueue(refreshError, null);
-        
-        // Trigger logout by clearing auth state
-        // This will cause app to redirect to login
-        return Promise.reject(refreshError);
-      } finally {
         isRefreshing = false;
+        return Promise.reject(refreshError);
       }
     }
 
