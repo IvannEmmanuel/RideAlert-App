@@ -2,18 +2,19 @@
 import { api } from '../../../utils/api';
 
 export const sendLocationToBackend = async (latitude: number, longitude: number, token?: string) => {
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`📍 [${requestId}] Attempting to send location:`, { latitude, longitude });
+  
   try {
-    // If you pass token explicitly, override headers for this call.
     if (token) {
       await api.post('/users/location', { latitude, longitude }, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
     } else {
-      // api will attach stored access_token automatically via interceptor
       await api.post('/users/location', { latitude, longitude });
     }
-    console.log('Location sent to backend');
+    console.log(`✅ [${requestId}] Location sent successfully`);
   } catch (error) {
-    console.error('Failed to send location', error);
+    console.error(`❌ [${requestId}] Failed to send location`, error);
   }
 };

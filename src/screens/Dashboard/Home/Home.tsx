@@ -525,67 +525,43 @@ const useDebounce = (value: any, delay: number) => {
 }
 
 // Global mutex implementation for location sending
+// Improved mutex implementation
 class LocationSendMutex {
-  private static instance: LocationSendMutex
-  private isLocked = false
-  private queue: Array<() => void> = []
+  private static instance: LocationSendMutex;
+  private isLocked = false;
+  private pendingRelease: NodeJS.Timeout | null = null;
 
   static getInstance(): LocationSendMutex {
     if (!LocationSendMutex.instance) {
-      LocationSendMutex.instance = new LocationSendMutex()
+      LocationSendMutex.instance = new LocationSendMutex();
     }
-    return LocationSendMutex.instance
+    return LocationSendMutex.instance;
   }
 
   async acquireLock(timeoutMs: number = MUTEX_TIMEOUT): Promise<boolean> {
-    return new Promise((resolve) => {
-      const attemptLock = async () => {
-        if (!this.isLocked) {
-          // Double-check with AsyncStorage to coordinate across all instances
-          try {
-            const mutexData = await AsyncStorage.getItem(LOCATION_MUTEX_KEY)
-            if (mutexData) {
-              const { timestamp } = JSON.parse(mutexData)
-              const now = Date.now()
-              // If mutex is stale (older than timeout), clear it
-              if (now - timestamp > timeoutMs) {
-                await AsyncStorage.removeItem(LOCATION_MUTEX_KEY)
-              } else {
-                // Mutex is held by another instance
-                resolve(false)
-                return
-              }
-            }
+    if (this.isLocked) return false;
 
-            // Acquire mutex
-            this.isLocked = true
-            await AsyncStorage.setItem(
-              LOCATION_MUTEX_KEY,
-              JSON.stringify({
-                timestamp: Date.now(),
-              }),
-            )
-            resolve(true)
-          } catch (error) {
-            console.error("Mutex acquire error:", error)
-            resolve(false)
-          }
-        } else {
-          resolve(false)
-        }
-      }
+    this.isLocked = true;
 
-      attemptLock()
-    })
+    // Auto-release after timeout to prevent deadlocks
+    this.pendingRelease = setTimeout(() => {
+      this.isLocked = false;
+      this.pendingRelease = null;
+    }, timeoutMs);
+
+    return true;
   }
 
   async releaseLock(): Promise<void> {
-    this.isLocked = false
-    try {
-      await AsyncStorage.removeItem(LOCATION_MUTEX_KEY)
-    } catch (error) {
-      console.error("Mutex release error:", error)
+    if (this.pendingRelease) {
+      clearTimeout(this.pendingRelease);
+      this.pendingRelease = null;
     }
+    this.isLocked = false;
+  }
+
+  isAcquired(): boolean {
+    return this.isLocked;
   }
 }
 
@@ -1126,14 +1102,16 @@ const HomeScreen: React.FC = () => {
 
   // ---- cleanup on unmount ----
   useEffect(() => {
+    console.log('🏠 HomeScreen mounted');
     return () => {
-      isMountedRef.current = false
-      cleanWs()
-      cleanVehicleWs()
-      stopPolling()
-      stopEtaPolling()
-    }
-  }, [cleanWs, stopPolling])
+      console.log('🏠 HomeScreen unmounted');
+      isMountedRef.current = false;
+      cleanWs();
+      cleanVehicleWs();
+      stopPolling();
+      stopEtaPolling();
+    };
+  }, []);
 
   // ---- startup initialization ----
   useEffect(() => {
@@ -1155,40 +1133,48 @@ const HomeScreen: React.FC = () => {
   // ---- AppState handler ----
   useEffect(() => {
     const onChange = async (next: AppStateStatus) => {
-      const prev = appStateRef.current
-      appStateRef.current = next
-      if (prev.match(/inactive|background/) && next === "active") {
-        await loadCachedBuses()
-        await loadCachedSelectedBus()
-        await loadCachedEtaData()
-        await fetchUserData()
+      const prev = appStateRef.current;
+      appStateRef.current = next;
 
-        const fleetId = userRef.current?.fleet_id || selectedBusRef.current?.fleet_id
-        if (fleetId) {
-          if (!wsRef.current) initWebSocket(fleetId)
-        } else {
-          startPolling()
-        }
-        // Start vehicle-specific WS when foregrounding if a bus is selected
-        if (selectedBusRef.current) {
-          initVehicleWebSocket(selectedBusRef.current.id, selectedBusRef.current.device_id)
-        }
-        // Restart ETA polling
-        if (selectedBusRef.current && locationRef.current) {
-          console.log("🔄 Restarting ETA polling after foreground")
-          startEtaPolling()
-        }
+      if (prev.match(/inactive|background/) && next === "active") {
+        console.log('📱 App became active - initializing...');
+        await initializeApp();
       } else if (next === "background") {
-        cleanWs()
-        cleanVehicleWs()
-        stopPolling()
-        stopEtaPolling()
+        console.log('📱 App backgrounded - cleaning up...');
+        cleanupApp();
       }
+    };
+
+    const sub = AppState.addEventListener("change", onChange);
+    return () => sub.remove();
+  }, []);
+
+  const initializeApp = useCallback(async () => {
+    await loadCachedBuses();
+    await loadCachedSelectedBus();
+    await loadCachedEtaData();
+    await fetchUserData();
+
+    const fleetId = userRef.current?.fleet_id || selectedBusRef.current?.fleet_id;
+    if (fleetId && !wsRef.current) {
+      initWebSocket(fleetId);
     }
 
-    const sub = AppState.addEventListener("change", onChange)
-    return () => sub.remove()
-  }, [cleanWs, stopPolling, stopEtaPolling, initWebSocket, loadCachedBuses, loadCachedSelectedBus, loadCachedEtaData, fetchUserData, startPolling, startEtaPolling])
+    if (selectedBusRef.current) {
+      initVehicleWebSocket(selectedBusRef.current.id, selectedBusRef.current.device_id);
+    }
+
+    if (selectedBusRef.current && locationRef.current) {
+      startEtaPolling();
+    }
+  }, [/* include all dependencies */]);
+
+  const cleanupApp = useCallback(() => {
+    cleanWs();
+    cleanVehicleWs();
+    stopPolling();
+    stopEtaPolling();
+  }, [cleanWs, cleanVehicleWs, stopPolling, stopEtaPolling]);
 
   // ---- focus handler ----
   useFocusEffect(
@@ -1249,19 +1235,19 @@ const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     if (selectedBus && location) {
-      startEtaPolling()
+      console.log('🚀 Starting ETA polling - selected bus and location available');
+      startEtaPolling();
     } else {
-      stopEtaPolling()
-      setEtaData(null)
-      cacheEtaData(null)
+      console.log('⏹️ Stopping ETA polling - no selected bus or location');
+      stopEtaPolling();
+      setEtaData(null);
+      cacheEtaData(null);
     }
 
     return () => {
-      if (!selectedBus) {
-        stopEtaPolling()
-      }
-    }
-  }, [selectedBus?.id, location?.latitude, location?.longitude, token, startEtaPolling, stopEtaPolling, cacheEtaData])
+      stopEtaPolling();
+    };
+  }, [!!selectedBus, !!location]); // Simpler dependencies
 
   // Cache buses whenever they update
   useEffect(() => {
@@ -1275,59 +1261,68 @@ const HomeScreen: React.FC = () => {
 
   // ---- OPTIMIZED LOCATION SENDING with Mutex ----
   const sendLocationWithMutex = useCallback(async (lat: number, lng: number, tkn: string) => {
+    // Quick check if already locked
+    if (locationSendMutex.current.isAcquired()) {
+      console.log('🔒 Location send already in progress, skipping');
+      return;
+    }
+
     try {
-      // Check global timestamp first (fast check)
-      const lockData = await AsyncStorage.getItem(LOCATION_LOCK_KEY)
-      const now = Date.now()
+      // Check timestamp first
+      const lockData = await AsyncStorage.getItem(LOCATION_LOCK_KEY);
+      const now = Date.now();
 
       if (lockData) {
-        const lastSentTime = Number.parseInt(lockData, 10)
+        const lastSentTime = Number.parseInt(lockData, 10);
         if (now - lastSentTime < LOCATION_SEND_INTERVAL) {
-          // Too soon, skip
-          return
+          console.log('⏰ Location sent too recently, skipping');
+          return;
         }
       }
 
-      // Try to acquire mutex
-      const acquired = await locationSendMutex.current.acquireLock()
-
+      // Acquire mutex
+      const acquired = await locationSendMutex.current.acquireLock();
       if (!acquired) {
-        // Another instance is sending or has lock
-        return
+        console.log('🔒 Could not acquire location mutex, skipping');
+        return;
       }
 
       try {
-        // Double-check timestamp after acquiring lock
-        const lockDataAfter = await AsyncStorage.getItem(LOCATION_LOCK_KEY)
+        // Double-check after acquiring lock
+        const lockDataAfter = await AsyncStorage.getItem(LOCATION_LOCK_KEY);
         if (lockDataAfter) {
-          const lastSentTimeAfter = Number.parseInt(lockDataAfter, 10)
+          const lastSentTimeAfter = Number.parseInt(lockDataAfter, 10);
           if (now - lastSentTimeAfter < LOCATION_SEND_INTERVAL) {
-            return
+            return;
           }
         }
 
-        // Update timestamp BEFORE sending
-        await AsyncStorage.setItem(LOCATION_LOCK_KEY, now.toString())
+        console.log('📍 Sending location to backend...');
+        await AsyncStorage.setItem(LOCATION_LOCK_KEY, now.toString());
+        await sendLocationToBackend(lat, lng, tkn);
+        console.log('✅ Location sent successfully');
 
-        // Send location
-        await sendLocationToBackend(lat, lng, tkn)
-        console.log("✅ Location sent successfully")
       } finally {
-        // Always release mutex
-        await locationSendMutex.current.releaseLock()
+        await locationSendMutex.current.releaseLock();
       }
     } catch (error) {
-      console.error("Send location with mutex error:", error)
-      // Ensure mutex is released on error
-      await locationSendMutex.current.releaseLock()
+      console.error('❌ Send location error:', error);
+      await locationSendMutex.current.releaseLock();
     }
-  }, [])
+  }, []);
 
+  // Replace your current location sending useEffect with this:
   useEffect(() => {
-    if (!debouncedLocation || !tokenRef.current) return
+    if (!debouncedLocation || !tokenRef.current) return;
 
-    sendLocationWithMutex(debouncedLocation.latitude, debouncedLocation.longitude, tokenRef.current)
-  }, [debouncedLocation, sendLocationWithMutex])
+    // Additional guard to prevent sending when no real location change
+    const shouldSendLocation = debouncedLocation.latitude && debouncedLocation.longitude;
+
+    if (shouldSendLocation) {
+      console.log('🔄 Attempting to send location...');
+      sendLocationWithMutex(debouncedLocation.latitude, debouncedLocation.longitude, tokenRef.current);
+    }
+  }, [debouncedLocation?.latitude, debouncedLocation?.longitude, sendLocationWithMutex]);
 
   // Route calculation debounce
   useEffect(() => {
