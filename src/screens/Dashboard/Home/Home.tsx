@@ -513,7 +513,8 @@ const RECONNECT_BASE_MS = 1000
 const RECONNECT_MAX_MS = 30000
 const LOCATION_SEND_INTERVAL = 7000
 const MUTEX_TIMEOUT = 3000
-const ETA_POLL_INTERVAL = 5000 // Poll ETA every 10 seconds
+const ETA_POLL_INTERVAL = 5000
+const ANIMATION_DURATION = 2000 // 2 seconds for smooth animation
 
 const useDebounce = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -524,8 +525,34 @@ const useDebounce = (value: any, delay: number) => {
   return debouncedValue
 }
 
+// Fetch route coordinates from OSRM
+const fetchRouteCoordinates = async (
+  start: { latitude: number; longitude: number },
+  end: { latitude: number; longitude: number }
+): Promise<{ latitude: number; longitude: number }[]> => {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`
+    const response = await fetch(url)
+    const data = await response.json()
+
+    if (data.code === 'Ok' && data.routes && data.routes[0]) {
+      const coordinates = data.routes[0].geometry.coordinates.map(
+        (coord: number[]) => ({
+          latitude: coord[1],
+          longitude: coord[0],
+        })
+      )
+      return coordinates
+    }
+
+    return [start, end]
+  } catch (error) {
+    console.error('Route fetching failed:', error)
+    return [start, end]
+  }
+}
+
 // Global mutex implementation for location sending
-// Improved mutex implementation
 class LocationSendMutex {
   private static instance: LocationSendMutex;
   private isLocked = false;
@@ -543,7 +570,6 @@ class LocationSendMutex {
 
     this.isLocked = true;
 
-    // Auto-release after timeout to prevent deadlocks
     this.pendingRelease = setTimeout(() => {
       this.isLocked = false;
       this.pendingRelease = null;
@@ -573,9 +599,15 @@ const HomeScreen: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false)
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
 
-  // NEW: ETA State
+  // ETA State
   const [etaData, setEtaData] = useState<any>(null)
   const [loadingEta, setLoadingEta] = useState(false)
+
+  // Animated marker position state
+  const [animatedBusLocation, setAnimatedBusLocation] = useState<{
+    latitude: number
+    longitude: number
+  } | null>(null)
 
   const mapRef = useRef<MapView | null>(null)
   const animation = useRef(new Animated.Value(0)).current
@@ -599,7 +631,9 @@ const HomeScreen: React.FC = () => {
   const wsRef = useRef<any>(null)
   const vehicleWsRef = useRef<any>(null)
   const pollingRef = useRef<any>(null)
-  const etaPollingRef = useRef<any>(null) // NEW: ETA polling ref
+  const etaPollingRef = useRef<any>(null)
+  const animationFrameRef = useRef<number | null>(null)
+  const currentPosRef = useRef<{ latitude: number; longitude: number } | null>(null)
   const reconnectAttemptRef = useRef(0)
   const reconnectTimeoutRef = useRef<any>(null)
   const vehicleReconnectAttemptRef = useRef(0)
@@ -609,18 +643,16 @@ const HomeScreen: React.FC = () => {
   const tokenRef = useRef<string | null>(null)
   const userRef = useRef<any>(null)
   const selectedBusRef = useRef<any>(null)
-  const locationRef = useRef<any>(null) // NEW: Location ref
+  const locationRef = useRef<any>(null)
   const locationSendMutex = useRef(LocationSendMutex.getInstance())
-  const lastBusesStateRef = useRef<string>("")  // Track last sent state
-  const lastSelectedBusStateRef = useRef<string>("")  // Track last selected bus state
+  const lastBusesStateRef = useRef<string>("")
+  const lastSelectedBusStateRef = useRef<string>("")
 
   const compareAndUpdateBuses = useCallback((newBuses: any[]) => {
     if (!newBuses || !isMountedRef.current) return
 
-    // Convert to JSON for comparison
     const newState = JSON.stringify(newBuses)
 
-    // Only update if state actually changed
     if (lastBusesStateRef.current === newState) {
       console.log("ℹ️ Bus list unchanged, skipping update")
       return
@@ -631,7 +663,7 @@ const HomeScreen: React.FC = () => {
     console.log("🔄 Bus list changed, updating state")
     setBuses(newBuses)
     cacheBusesDebounced(newBuses)
-  }, [setBuses, cacheBusesDebounced])
+  }, [])
 
   const compareAndUpdateSelectedBus = useCallback((newSelectedBus: any) => {
     if (!isMountedRef.current) return
@@ -648,7 +680,7 @@ const HomeScreen: React.FC = () => {
     console.log("🔄 Selected bus changed, updating")
     setSelectedBus(newSelectedBus)
     cacheSelectedBus(newSelectedBus)
-  }, [setSelectedBus, cacheSelectedBus])
+  }, [])
 
   useEffect(() => {
     const backAction = () => true
@@ -712,7 +744,7 @@ const HomeScreen: React.FC = () => {
       if (raw && isMountedRef.current) {
         const parsed = JSON.parse(raw)
         setSelectedBus(parsed)
-        if (parsed?.location) setCurrentBusLocation(parsed.location)
+        // Don't set location from cache - wait for real-time update from WebSocket
         selectedBusRef.current = parsed
         return parsed
       }
@@ -720,14 +752,13 @@ const HomeScreen: React.FC = () => {
       console.error("Load cached selected bus error:", e)
     }
     return null
-  }, [setSelectedBus, setCurrentBusLocation])
+  }, [setSelectedBus])
 
   const loadCachedEtaData = useCallback(async () => {
     try {
       const raw = await AsyncStorage.getItem(ETA_DATA_KEY)
       if (raw && isMountedRef.current) {
         const parsed = JSON.parse(raw)
-        // Check if it matches the current selected bus
         if (selectedBusRef.current && parsed.vehicle_id === selectedBusRef.current.id) {
           setEtaData(parsed)
           return parsed
@@ -742,8 +773,6 @@ const HomeScreen: React.FC = () => {
   useEffect(() => {
     selectedBusRef.current = selectedBus
   }, [selectedBus])
-
-
 
   useEffect(() => {
     locationRef.current = location
@@ -831,13 +860,11 @@ const HomeScreen: React.FC = () => {
   }, [])
 
   const initVehicleWebSocket = useCallback((vehicleId?: string, deviceId?: string) => {
-    // pick one endpoint: prefer vehicle-level subscription if vehicleId known
     const vid = vehicleId || selectedBusRef.current?.id
     const did = deviceId || selectedBusRef.current?.device_id
     const endpoint = vid ? `${WS_BASE_URL}/ws/vehicle/${vid}/location` : did ? `${WS_BASE_URL}/ws/device/${did}/location` : null
     if (!endpoint) return
 
-    // close existing
     if (vehicleWsRef.current) {
       try {
         vehicleWsRef.current.onclose = null
@@ -862,7 +889,6 @@ const HomeScreen: React.FC = () => {
           const raw = JSON.parse(evt.data)
           const msg = raw || {}
 
-          // support both { type: 'location_update', latitude, longitude } and simple payloads
           const lat = msg.latitude ?? msg.location?.latitude
           const lng = msg.longitude ?? msg.location?.longitude
           const vId = msg.vehicle_id ?? msg.vehicleId ?? vid
@@ -870,10 +896,8 @@ const HomeScreen: React.FC = () => {
 
           if (lat != null && lng != null) {
             const loc = { latitude: Number(lat), longitude: Number(lng) }
-            // update current bus location
             setCurrentBusLocation(loc)
 
-            // also update buses array so other UI stays consistent
             setBuses((prev: any[]) => {
               if (!prev || prev.length === 0) return prev
               return prev.map((b) => {
@@ -893,7 +917,6 @@ const HomeScreen: React.FC = () => {
         console.log("Vehicle WS closed")
         vehicleWsRef.current = null
         if (!isMountedRef.current) return
-        // schedule reconnect
         scheduleVehicleReconnect(vid, did)
       }
 
@@ -921,7 +944,6 @@ const HomeScreen: React.FC = () => {
     initVehicleWebSocket(vid, did)
 
     return () => {
-      // keep vehicle WS active only while this bus is selected
       cleanVehicleWs()
     }
   }, [selectedBus, initVehicleWebSocket, cleanVehicleWs])
@@ -969,7 +991,6 @@ const HomeScreen: React.FC = () => {
             const rawData = JSON.parse(evt.data)
             const payload = rawData.vehicles || rawData
 
-            // Use comparison function instead of direct update
             compareAndUpdateBuses(payload)
           } catch (e) {
             console.error("WebSocket message parse error:", e)
@@ -1000,8 +1021,86 @@ const HomeScreen: React.FC = () => {
         scheduleReconnect(fid)
       }
     },
-    [stopPolling, startPolling, cacheBusesDebounced, scheduleReconnect, setBuses],
+    [stopPolling, startPolling, cacheBusesDebounced, scheduleReconnect, setBuses, compareAndUpdateBuses],
   )
+
+  // ---- SMOOTH ANIMATION LOGIC ----
+  const animateMarkerAlongRoute = useCallback(async (startPos: { latitude: number; longitude: number }, endPos: { latitude: number; longitude: number }) => {
+    if (
+      startPos.latitude === endPos.latitude &&
+      startPos.longitude === endPos.longitude
+    ) {
+      return
+    }
+
+    console.log('📍 Fetching road route for smooth animation...')
+
+    try {
+      const path = await fetchRouteCoordinates(startPos, endPos)
+      console.log(`🛣️ Route has ${path.length} points`)
+
+      const startTime = Date.now()
+      const totalPoints = path.length
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / ANIMATION_DURATION, 1)
+
+        const targetIndex = Math.floor(progress * (totalPoints - 1))
+        const nextIndex = Math.min(targetIndex + 1, totalPoints - 1)
+
+        const segmentProgress = progress * (totalPoints - 1) - targetIndex
+
+        const currentPoint = path[targetIndex]
+        const nextPoint = path[nextIndex]
+
+        const lat = currentPoint.latitude + (nextPoint.latitude - currentPoint.latitude) * segmentProgress
+        const lng = currentPoint.longitude + (nextPoint.longitude - currentPoint.longitude) * segmentProgress
+
+        const newLocation = { latitude: lat, longitude: lng }
+        currentPosRef.current = newLocation
+        setAnimatedBusLocation(newLocation)
+
+        if (progress < 1) {
+          animationFrameRef.current = requestAnimationFrame(animate)
+        } else {
+          animationFrameRef.current = null
+          console.log('✅ Animation complete')
+        }
+      }
+
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+
+      animationFrameRef.current = requestAnimationFrame(animate)
+    } catch (error) {
+      console.error('❌ Animation error:', error)
+      setAnimatedBusLocation(endPos)
+      currentPosRef.current = endPos
+    }
+  }, [])
+
+  // Trigger animation when currentBusLocation changes
+  useEffect(() => {
+    if (!currentBusLocation || !selectedBus) return
+
+    if (!currentPosRef.current) {
+      setAnimatedBusLocation(currentBusLocation)
+      currentPosRef.current = currentBusLocation
+      return
+    }
+
+    animateMarkerAlongRoute(currentPosRef.current, currentBusLocation)
+  }, [currentBusLocation?.latitude, currentBusLocation?.longitude, selectedBus?.id, animateMarkerAlongRoute])
+
+  // Initialize animated location when selected bus changes
+  useEffect(() => {
+    if (selectedBus && currentBusLocation) {
+      setAnimatedBusLocation(currentBusLocation)
+      currentPosRef.current = currentBusLocation
+    }
+  }, [selectedBus?.id])
 
   const fetchEtaData = useCallback(async () => {
     const currentSelectedBus = selectedBusRef.current
@@ -1012,7 +1111,6 @@ const HomeScreen: React.FC = () => {
       return
     }
 
-    // Check if token is expired BEFORE making the request
     if (isTokenExpired(currentToken)) {
       console.log("🔄 Token expired locally, refreshing before ETA request...")
       const refreshed = await refreshAccessToken()
@@ -1020,7 +1118,6 @@ const HomeScreen: React.FC = () => {
         console.warn("❌ Token refresh failed")
         return
       }
-      // Get updated token after refresh
       const newToken = await getToken()
       tokenRef.current = newToken
     }
@@ -1062,9 +1159,9 @@ const HomeScreen: React.FC = () => {
         setLoadingEta(false)
       }
     }
-  }, [cacheEtaData, isTokenExpired, refreshAccessToken])
+  }, [cacheEtaData])
 
-  // ---- NEW: ETA POLLING CONTROL ----
+  // ---- ETA POLLING CONTROL ----
   const startEtaPolling = useCallback(() => {
     if (etaPollingRef.current) {
       clearInterval(etaPollingRef.current)
@@ -1076,12 +1173,10 @@ const HomeScreen: React.FC = () => {
       return
     }
 
-    console.log("▶️ Starting ETA real-time polling (every 10s)")
+    console.log("▶️ Starting ETA real-time polling (every 5s)")
 
-    // Fetch immediately
     fetchEtaData()
 
-    // Then poll every 10 seconds
     etaPollingRef.current = setInterval(() => {
       if (!isMountedRef.current) return
       if (!selectedBusRef.current || !locationRef.current) {
@@ -1110,6 +1205,9 @@ const HomeScreen: React.FC = () => {
       cleanVehicleWs();
       stopPolling();
       stopEtaPolling();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, []);
 
@@ -1167,14 +1265,14 @@ const HomeScreen: React.FC = () => {
     if (selectedBusRef.current && locationRef.current) {
       startEtaPolling();
     }
-  }, [/* include all dependencies */]);
+  }, [initWebSocket, initVehicleWebSocket, startEtaPolling, loadCachedBuses, loadCachedSelectedBus, loadCachedEtaData, fetchUserData]);
 
   const cleanupApp = useCallback(() => {
     cleanWs();
     cleanVehicleWs();
     stopPolling();
     stopEtaPolling();
-  }, [cleanWs, cleanVehicleWs, stopPolling, stopEtaPolling]);
+  }, []);
 
   // ---- focus handler ----
   useFocusEffect(
@@ -1189,7 +1287,7 @@ const HomeScreen: React.FC = () => {
         startEtaPolling()
       }
       return () => { }
-    }, [initWebSocket, startPolling]),
+    }, [initWebSocket, startPolling, startEtaPolling]),
   )
 
   // ---- update currentBusLocation from buses ----
@@ -1199,14 +1297,11 @@ const HomeScreen: React.FC = () => {
     const updatedBus = buses.find((b) => b.id === selectedBus.id)
     if (!updatedBus) return
 
-    // Use comparison function
     compareAndUpdateSelectedBus(updatedBus)
 
-    // Handle both status_detail and status_details
     const prevStatusDetail = selectedBus.status_detail || selectedBus.status_details
     const updatedStatusDetail = updatedBus.status_detail || updatedBus.status_details
 
-    // Check if any important properties changed
     const hasChanges =
       updatedBus.status !== selectedBus.status ||
       updatedStatusDetail !== prevStatusDetail ||
@@ -1214,12 +1309,10 @@ const HomeScreen: React.FC = () => {
       updatedBus.route !== selectedBus.route ||
       updatedBus.available_seats !== selectedBus.available_seats
 
-    // Update marker position
     if (updatedBus.location) {
       setCurrentBusLocation(updatedBus.location)
     }
 
-    // Log changes for debugging
     if (hasChanges) {
       console.log("🔄 Bus data changed:", {
         status: `${selectedBus.status} -> ${updatedBus.status}`,
@@ -1228,10 +1321,9 @@ const HomeScreen: React.FC = () => {
         available_seats: `${selectedBus.available_seats} -> ${updatedBus.available_seats}`,
       })
 
-      // Force marker remount to update callout
       setMarkerKey((prev) => prev + 1)
     }
-  }, [buses, compareAndUpdateSelectedBus])
+  }, [buses, compareAndUpdateSelectedBus, setCurrentBusLocation])
 
   useEffect(() => {
     if (selectedBus && location) {
@@ -1247,28 +1339,24 @@ const HomeScreen: React.FC = () => {
     return () => {
       stopEtaPolling();
     };
-  }, [!!selectedBus, !!location]); // Simpler dependencies
+  }, [!!selectedBus, !!location, startEtaPolling, stopEtaPolling, cacheEtaData])
 
-  // Cache buses whenever they update
   useEffect(() => {
     if (buses && buses.length > 0) cacheBusesDebounced(buses)
   }, [buses, cacheBusesDebounced])
 
-  // Cache selectedBus changes
   useEffect(() => {
     cacheSelectedBus(selectedBus)
   }, [selectedBus, cacheSelectedBus])
 
   // ---- OPTIMIZED LOCATION SENDING with Mutex ----
   const sendLocationWithMutex = useCallback(async (lat: number, lng: number, tkn: string) => {
-    // Quick check if already locked
     if (locationSendMutex.current.isAcquired()) {
       console.log('🔒 Location send already in progress, skipping');
       return;
     }
 
     try {
-      // Check timestamp first
       const lockData = await AsyncStorage.getItem(LOCATION_LOCK_KEY);
       const now = Date.now();
 
@@ -1280,7 +1368,6 @@ const HomeScreen: React.FC = () => {
         }
       }
 
-      // Acquire mutex
       const acquired = await locationSendMutex.current.acquireLock();
       if (!acquired) {
         console.log('🔒 Could not acquire location mutex, skipping');
@@ -1288,7 +1375,6 @@ const HomeScreen: React.FC = () => {
       }
 
       try {
-        // Double-check after acquiring lock
         const lockDataAfter = await AsyncStorage.getItem(LOCATION_LOCK_KEY);
         if (lockDataAfter) {
           const lastSentTimeAfter = Number.parseInt(lockDataAfter, 10);
@@ -1311,11 +1397,9 @@ const HomeScreen: React.FC = () => {
     }
   }, []);
 
-  // Replace your current location sending useEffect with this:
   useEffect(() => {
     if (!debouncedLocation || !tokenRef.current) return;
 
-    // Additional guard to prevent sending when no real location change
     const shouldSendLocation = debouncedLocation.latitude && debouncedLocation.longitude;
 
     if (shouldSendLocation) {
@@ -1376,7 +1460,6 @@ const HomeScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* NEW: ETA Display (Outside Map, Above Callout) */}
       {selectedBus && etaData && (
         <View style={homeStyles.etaFloatingContainer}>
           <View style={homeStyles.etaCard}>
@@ -1424,11 +1507,11 @@ const HomeScreen: React.FC = () => {
             />
           )}
 
-          {selectedBus && currentBusLocation && (
+          {selectedBus && animatedBusLocation && (
             <Marker
               ref={markerRef}
-              key={`bus-${selectedBus.id}-${markerKey}`} // Add markerKey to force remount
-              coordinate={currentBusLocation}
+              key={`bus-${selectedBus.id}-${markerKey}`}
+              coordinate={animatedBusLocation}
               image={require("../../../assets/bus.png")}
             >
               <Callout tooltip>
