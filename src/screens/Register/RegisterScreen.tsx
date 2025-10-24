@@ -167,7 +167,7 @@ const Register = () => {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}/fleets/all`);
+        const response = await axios.get(`${BASE_URL}/fleets/admin`);
         if (response.data.fleets) {
           setCompanies(response.data.fleets);
         }
