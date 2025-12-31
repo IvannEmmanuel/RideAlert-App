@@ -5,13 +5,13 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  BackHandler,
+  ActivityIndicator
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { loginStyles as styles } from "../../styles/loginStyles";
 import { BASE_URL } from '../../config/apiConfig';
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import { getApp } from "@react-native-firebase/app";
 import { getMessaging } from "@react-native-firebase/messaging";
@@ -21,12 +21,14 @@ const LoginNew = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigation = useNavigation();
+  const { login } = useAuth(); // Get login function from AuthContext
 
   const handleRegister = () => {
     navigation.navigate("Register");
-  }
+  };
 
   const saveFcmToken = async (token: string, jwt: string, userId: string) => {
     try {
@@ -53,10 +55,13 @@ const LoginNew = () => {
   };
 
   const handleLogin = async () => {
-    setErrorMessage(""); // reset old error first
+    if (loading) return;
+    setLoading(true);
+    setErrorMessage("");
 
     if (!email || !password) {
       setErrorMessage("Email and password are required.");
+      setLoading(false);
       return;
     }
 
@@ -66,31 +71,34 @@ const LoginNew = () => {
         password,
       });
 
-      const access_token = response.data.access_token;
-      const user = response.data.user;
+      const { access_token, refresh_token, user } = response.data;
 
-      await AsyncStorage.setItem("access_token", access_token);
-      await AsyncStorage.setItem("user", JSON.stringify(user));
+      // Use AuthContext login instead of manual AsyncStorage
+      await login(access_token, refresh_token, user);
 
-      console.log("Login successful, token:", access_token);
-      console.log("User data:", user);
+      console.log("✅ Login successful, token:", access_token);
+      console.log("✅ User data:", user);
 
-      // 🔥 Fetch and sync FCM token
+      // Handle FCM token
       try {
         const messaging = getMessaging(getApp());
         const fcmToken = await messaging.getToken();
-        console.log("FCM Token:", fcmToken);
+        console.log("📱 FCM Token:", fcmToken);
 
         if (fcmToken) {
           await saveFcmToken(fcmToken, access_token, user.id);
         }
       } catch (err) {
-        console.error("Error fetching/saving FCM token:", err);
+        console.error("⚠️ Error fetching/saving FCM token:", err);
+        // Don't block login if FCM fails
       }
 
-      navigation.navigate("Home"); //Panel
-    } catch (error) {
-      console.log("Login failed:", error);
+      // No need to navigate manually - AuthContext will trigger
+      // AppNavigator to automatically show Home screen
+      console.log("🎉 Login complete - navigating to Home...");
+
+    } catch (error: any) {
+      console.error("❌ Login failed:", error);
 
       if (error.response) {
         if (error.response.status === 401) {
@@ -100,9 +108,13 @@ const LoginNew = () => {
             error.response.data.message || "Something went wrong. Please try again."
           );
         }
-      } else {
+      } else if (error.request) {
         setErrorMessage("Unable to connect. Check your internet connection.");
+      } else {
+        setErrorMessage("An unexpected error occurred. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,7 +131,9 @@ const LoginNew = () => {
           value={email}
           onChangeText={setEmail}
           style={styles.emailInput}
-          placeholderTextColor="#888" // Set a visible color
+          placeholderTextColor="#888"
+          autoCapitalize="none"
+          keyboardType="email-address"
         />
         <View style={styles.passwordContainer}>
           <TextInput
@@ -128,7 +142,7 @@ const LoginNew = () => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordVisible}
-            placeholderTextColor="#888" // Set a visible color
+            placeholderTextColor="#888"
           />
           <TouchableOpacity
             style={styles.emojiContainer}
@@ -150,10 +164,15 @@ const LoginNew = () => {
           </View>
         ) : null}
         <TouchableOpacity
-          style={styles.continueContainer}
+          style={[styles.continueContainer, loading && { opacity: 0.6 }]}
           onPress={handleLogin}
+          disabled={loading}
         >
-          <Text style={styles.continueText}>Continue</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.continueText}>Continue</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.forgotContainer}>
           <Text style={styles.forgotText}>Forgot password?</Text>

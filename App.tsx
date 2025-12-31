@@ -8,6 +8,9 @@ import {
   AuthorizationStatus,
 } from "@react-native-firebase/messaging";
 import PushNotification from "react-native-push-notification";
+import { LocationProvider } from "./src/context/LocationContext";
+import { BusProvider } from "./src/context/BusContext";
+import { AuthProvider } from "./src/context/AuthContext";
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -82,7 +85,15 @@ const App: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  return <AppNavigator />;
+  return (
+    <AuthProvider>
+      <BusProvider>
+        <LocationProvider>
+          <AppNavigator />
+        </LocationProvider>
+      </BusProvider>
+    </AuthProvider>
+  );
 };
 
 export default App;

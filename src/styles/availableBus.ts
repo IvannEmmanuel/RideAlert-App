@@ -6,7 +6,7 @@ const availableBusStyle = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F7F6FB',
-        top: height * 0.02,
+        top: height * 0.05,
     },
     topContainer: {
         flexDirection: 'row',
@@ -19,7 +19,7 @@ const availableBusStyle = StyleSheet.create({
         fontSize: 20,
     },
     filterContainer: {
-        backgroundColor: '#0500FE',
+        backgroundColor: '#111B56D4',
         width: width * 0.2,
         height: height * 0.024,
         left: width * 0.02,
@@ -27,6 +27,7 @@ const availableBusStyle = StyleSheet.create({
         top: height * 0.03,
         justifyContent: 'center',
         marginBottom: height * 0.05,
+        marginRight: 10,
     },
     filterText: {
         fontFamily: 'Montserrat-Regular',
@@ -64,16 +65,16 @@ const availableBusStyle = StyleSheet.create({
     },
     valueText: {
         fontFamily: 'Montserrat-Regular',
-        fontSize: 14,
+        fontSize: 13,
         flex: 1
     },
     notifyButton: {
         right: width * 0.02,
-        backgroundColor: '#1172FF',
+        backgroundColor: '#111B56D4',
         justifyContent: 'center',
         alignItems: 'center',
         width: width * 0.2,
-        height: height * 0.026,
+        height: height * 0.05,
         borderRadius: 6
     },
     notifyText: {
@@ -129,6 +130,42 @@ const availableBusStyle = StyleSheet.create({
         fontFamily: 'Montserrat-Bold',
         fontSize: 16,
     },
+    filterButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginHorizontal: 4,
+        backgroundColor: '#e0e0e0',
+    },
+    activeFilterButton: {
+        backgroundColor: '#007bff',
+    },
+    activeFilterText: {
+        color: '#fff',
+        fontWeight: 'bold',
+    },
+    availableStatus: {
+        color: 'green',
+        fontWeight: 'bold',
+    },
+    fullStatus: {
+        color: 'red',
+        fontWeight: 'bold',
+    },
+    otherStatus: {
+        color: 'orange',
+        fontWeight: 'bold',
+    },
+    disabledNotifyButton: {
+        backgroundColor: '#ccc',
+    },
+    disabledNotifyText: {
+        color: '#666',
+    },
+    standbyStatus: {
+        color: '#f79546ff',
+        fontWeight: 'bold',
+    }
 });
 
 export default availableBusStyle;
